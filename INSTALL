@@ -1,6 +1,6 @@
 1) Running parse.pl
 
-- Make sure you have the DBI and XML/Parser/PerlSAX Perl modules installed.
+- Make sure you have the DBI, Time:Local and XML/Parser/PerlSAX Perl modules installed.
 
 - Create a MySQL database and perform the following queries:
  CREATE TABLE user (id SERIAL, name VARCHAR(255) UNIQUE);

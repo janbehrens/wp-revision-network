@@ -3,6 +3,7 @@
 use strict;
 use DBI;
 use XML::Parser::PerlSAX;
+use Time::Local;
 
 package MyHandler;
 
@@ -61,7 +62,9 @@ sub characters {
         }
     }
     elsif ($tag eq 's') {
-        $timestamp = $characters->{Data};
+        $characters->{Data} =~ /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z$/;  #timestamp format: 2011-01-08T02:14:31Z
+        $timestamp = Time::Local::timelocal($6, $5, $4, $3, $2-1, $1);
+        #print "\n$timestamp - ".localtime($timestamp);
     }
     elsif ($tag eq 'u') {
         $user = $characters->{Data};
@@ -78,7 +81,7 @@ sub characters {
             my $w = 0;
             
             #insert new revision edge or update weight if it exists
-            my $sth = $dbh->prepare("SELECT weight FROM edge WHERE fromuser='$userid' AND touser='$previoususerid';");
+            my $sth = $dbh->prepare("SELECT weight FROM edge WHERE fromuser=$userid AND touser=$previoususerid;");
             $sth->execute;
             my @row = $sth->fetchrow_array;
             if (@row) {
