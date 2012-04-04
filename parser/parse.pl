@@ -7,10 +7,11 @@ use Time::Local;
 
 package MyHandler;
 
-my $file = shift(@ARGV) or die "must specify a Mediawiki dump file";
-
 my $dbh = DBI->connect("DBI:mysql:database=wpdump;host=localhost", 'root', 'pw') or die;
 $dbh->{PrintError} = 0;
+
+my @pages = ('Iphepha Elingundoqo', 'Iinkonzo Zeelwimi Zesizwe');   #the pages you want
+my $dtmax = 3600;  #maximum timestamp difference in seconds
 
 my $user;
 my $userid;
@@ -18,8 +19,6 @@ my $timestamp;
 my $previoususer;
 my $previoususerid;
 my $previoustimestamp;
-
-my @pages = ('Iphepha Elingundoqo', 'Iinkonzo Zeelwimi Zesizwe');   #the pages you want
 my $parse;
 my $tag;
 
@@ -47,6 +46,9 @@ sub end_element {
         if ($parse) { print " done.\n"; }
         if (!@pages) { exit; }
         undef $parse;
+        undef $previoususer;
+        undef $previoususerid;
+        undef $previoustimestamp;
     }
     undef $tag;
 }
@@ -77,8 +79,9 @@ sub characters {
         $userid = $row[0];
         
         if (defined($previoususer) && $previoususer ne $user) {
-            #TODO: calculate weight
-            my $w = 0;
+            #calculate weight
+            my $dt = $timestamp - $previoustimestamp;
+            my $w = $dt <= $dtmax ? 1-$dt/$dtmax : 0;
             
             #insert new revision edge or update weight if it exists
             my $sth = $dbh->prepare("SELECT weight FROM edge WHERE fromuser=$userid AND touser=$previoususerid;");
@@ -92,7 +95,6 @@ sub characters {
                 $dbh->do("INSERT INTO edge VALUES ($userid, $previoususerid, $w);");
             }
         }
-
         $previoususer = $user;
         $previoususerid = $userid;
         $previoustimestamp = $timestamp;
@@ -101,5 +103,6 @@ sub characters {
 
 my $my_handler = MyHandler->new;
 my $parser = XML::Parser::PerlSAX->new(Handler => $my_handler);
+my $file = shift(@ARGV) or die "must specify a Mediawiki dump file";
 $parser->parse(Source => {SystemId => $file});
 
