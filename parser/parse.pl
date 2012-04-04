@@ -44,6 +44,7 @@ sub end_element {
     my ($self, $element) = @_;
     if ($element->{Name} =~ /^page$/) {
         if ($parse) { print " done.\n"; }
+        if (!@pages) { exit; }
         undef $parse;
     }
     undef $tag;
@@ -55,6 +56,7 @@ sub characters {
         my $title = $characters->{Data};
         if (grep $_ eq $title, @pages) {
             $parse = 1;
+            @pages = grep $_ ne $title, @pages;
             print "reading $title...";
         }
     }
