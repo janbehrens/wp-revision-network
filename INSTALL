@@ -1,0 +1,13 @@
+1) Running parse.pl
+
+- Make sure you have the DBI and XML/Parser/PerlSAX Perl modules installed.
+
+- Create a MySQL database and perform the following queries:
+ CREATE TABLE user (id SERIAL, name VARCHAR(255) UNIQUE);
+ CREATE TABLE edge (fromuser INTEGER, touser INTEGER, weight FLOAT);
+
+- Get a Wikipedia stub file from http://dumps.wikimedia.org/
+
+- Adjust the database credentials and provide the page titles whose history you want to analyse in parser/parse.pl
+
+- Run 'perl parse.pl dump.xml'
