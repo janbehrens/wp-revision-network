@@ -7,10 +7,10 @@ use Time::Local;
 
 package MyHandler;
 
-my $dbh = DBI->connect("DBI:mysql:database=wpdump;host=localhost", 'root', 'pw') or die;
+my $dbh = DBI->connect("DBI:mysql:database=test;host=localhost", 'root', 'test1t') or die;
 $dbh->{PrintError} = 0;
 
-my @pages = ('Iphepha Elingundoqo', 'Iinkonzo Zeelwimi Zesizwe');   #the pages you want
+my @pages = ('Alan Smithee', 'Ang Lee', 'Aussagenlogik');   #the pages you want
 my $dtmax = 3600;  #maximum timestamp difference in seconds
 
 my $user;
@@ -21,6 +21,7 @@ my $previoususerid;
 my $previoustimestamp;
 my $parse;
 my $tag;
+my $currentTitle = '';
 
 sub new {
     my ($type) = @_;
@@ -57,6 +58,7 @@ sub characters {
     my ($self, $characters) = @_;
     if ($tag eq 't') {
         my $title = $characters->{Data};
+		$currentTitle = $characters->{Data};
         if (grep $_ eq $title, @pages) {
             $parse = 1;
             @pages = grep $_ ne $title, @pages;
@@ -92,7 +94,7 @@ sub characters {
                 $dbh->do("UPDATE edge SET weight=$w WHERE fromuser=$userid AND touser=$previoususerid;");
             }
             else {
-                $dbh->do("INSERT INTO edge VALUES ($userid, $previoususerid, $w);");
+                $dbh->do("INSERT INTO edge VALUES ($userid, $previoususerid, $w, '$currentTitle');");
             }
         }
         $previoususer = $user;
