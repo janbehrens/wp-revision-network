@@ -1,12 +1,12 @@
 // evgen.cpp : Defines the entry point for the console application.
 //
 #include "stdafx.h"
-#include <conio.h>
+//#include <conio.h>
 #include <sstream>
 #include <string>
-#include <my_global.h>
+//#include <my_global.h>
 #include <mysql.h>
-#include "AdjacencyMatrix.h"
+#include "adjacencymatrix.h"
 #include <algorithm>
 
 using namespace alglib;
@@ -135,7 +135,7 @@ void debugGraph(const vector<evItem>& ev, const real_2d_array& vr) {
 	file << _article << ".html";
 
 	ofstream myfile;
-	myfile.open(file.str());
+	myfile.open(file.str().c_str());
 	myfile << "<html>"
 		"<head>"
 		"	<style>"
@@ -152,7 +152,7 @@ void debugGraph(const vector<evItem>& ev, const real_2d_array& vr) {
 		double xr = (inv != 0) ? r1 * x / inv : 0;
 		double yr = (inv != 0) ? r2 * y / inv : 0;
 
-		myfile << "<div class='i' style='left:" << round(r1 + 20 + xr) << "px; top:" << round(r1 + 20 + yr) << "px;'>x</div>" << endl;
+		myfile << "<div class='i' style='left:" << alglib::round(r1 + 20 + xr) << "px; top:" << alglib::round(r1 + 20 + yr) << "px;'>x</div>" << endl;
 		//cout << "P[" << r1 + xr << "; " << r1 + yr << "], I = " << inv << endl;
 	}
 	myfile << "</body></html>";
@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
 	AdjacencyMatrix *mat = new AdjacencyMatrix();
 
 	mysql_init(&mysql);
-	connection = mysql_real_connect(&mysql, "localhost", "root", "test1t", "test", 0, NULL, CLIENT_MULTI_STATEMENTS);
+	connection = mysql_real_connect(&mysql, "localhost", "root", "pw", "wpdump", 0, NULL, CLIENT_MULTI_STATEMENTS);
 	if (connection == NULL) {
 		fprintf(stderr, "Failed to connect to database: Error: %s\n",
 			  mysql_error(&mysql));

@@ -52,8 +52,8 @@ class AdjacencyMatrix {
 			real_2d_array a;
 			a.setlength(n, n);
 
-			map<string, map<string, double>>::iterator rows;
-			map<string, map<string, double>>::iterator cols;
+			map<string, map<string, double> >::iterator rows;
+			map<string, map<string, double> >::iterator cols;
 			for(rows = _matrix.begin(); rows != _matrix.end(); ++rows) {
 				string from = rows->first;
 				for(cols = _matrix.begin(); cols != _matrix.end(); ++cols) {
@@ -72,7 +72,7 @@ class AdjacencyMatrix {
 		//**************************************************//
 		map<string, unsigned int> GetMatrixItems() {
 			map<string, unsigned int> data;
-			map<string, map<string, double>>::iterator rows;
+			map<string, map<string, double> >::iterator rows;
 			unsigned int i = 0;
 			for(rows = _matrix.begin(); rows != _matrix.end(); ++rows) {
 				data[rows->first] = i++;
@@ -83,7 +83,7 @@ class AdjacencyMatrix {
 		//**************************************************//
 		// Generates a table containing the data
 		//**************************************************//
-		void DebugTable(const string& file) {
+		void DebugTable(const char* file) {
 			ofstream myfile;
 			myfile.open(file);
 			
@@ -92,8 +92,8 @@ class AdjacencyMatrix {
 
 			//first generate column header
 			myfile << "<tr><td>&nbsp;</td>";
-			map<string, map<string, double>>::iterator rows;
-			map<string, map<string, double>>::iterator cols;
+			map<string, map<string, double> >::iterator rows;
+			map<string, map<string, double> >::iterator cols;
 			for(cols = _matrix.begin(); cols != _matrix.end(); ++cols) {
 				myfile << "<td>" << cols->first << "</td>";
 			}
@@ -128,7 +128,7 @@ class AdjacencyMatrix {
 		}
 
 	private:
-		map<string, map<string, double>> _matrix;
+		map<string, map<string, double> > _matrix;
 };
 
 #endif
