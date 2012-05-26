@@ -1,6 +1,6 @@
 1) Running parse.pl
 
-- Make sure you have the DBI, Time:Local and XML/Parser/PerlSAX Perl modules installed.
+- Make sure you have the DBI, Time::Local, Text::CSV and XML::Parser::PerlSAX Perl modules installed.
 
 - Create a MySQL database and perform the following queries:
  CREATE TABLE user (id SERIAL, name VARCHAR(255) UNIQUE);
@@ -27,10 +27,13 @@
 
 - Get a Wikipedia stub file from http://dumps.wikimedia.org/
 
-- Adjust the database credentials and provide the page titles whose history you want to analyse in parser/parse.pl
-
-- Run 'perl parse.pl dump.xml'
+- Run 'perl parse.pl CONNECTION ARTICLES DTMAX DUMPFILE' with
+    CONNECTION : database credentials in the form "dbname,dbhost,dbuser,dbpass"
+    ARTICLES : page titles whose history you want to analyse as comma-separated list, e.g. "Alan Smithee, Ang Lee, Aussagenlogik" (use those double quotes!)
+    DTMAX : the maximum time difference between edits (as integer)
+    DUMPFILE : path to the Wikipedia dump file
 
 - Compile the c++ program "evgen"
 
-- Run 'evgen "Articlename"
+- Run 'evgen "Articlename"'
+

@@ -4,14 +4,19 @@ use strict;
 use DBI;
 use XML::Parser::PerlSAX;
 use Time::Local;
+use Text::CSV;
 
 package MyHandler;
 
-my $dbh = DBI->connect("DBI:mysql:database=test;host=localhost", 'root', 'test1t') or die;
+shift(@ARGV) =~ /^(.+),(.+),(.+),(.+)$/;
+my $dbh = DBI->connect("DBI:mysql:database=$1;host=$2", $3, $4) or die;
 $dbh->{PrintError} = 0;
 
-my @pages = ('Alan Smithee', 'Ang Lee', 'Aussagenlogik');   #the pages you want
-my $dtmax = 3600;  #maximum timestamp difference in seconds
+my $csv = Text::CSV->new({allow_whitespace => 1});  #the pages to be analysed
+$csv->parse(shift(@ARGV));
+my @pages = $csv->fields() or die;
+
+my $dtmax = shift(@ARGV);  #maximum timestamp difference in seconds
 
 my $user;
 my $userid;
@@ -21,7 +26,7 @@ my $previoususerid;
 my $previoustimestamp;
 my $parse;
 my $tag;
-my $currentTitle = '';
+my $title;
 
 sub new {
     my ($type) = @_;
@@ -57,8 +62,7 @@ sub end_element {
 sub characters {
     my ($self, $characters) = @_;
     if ($tag eq 't') {
-        my $title = $characters->{Data};
-		$currentTitle = $characters->{Data};
+        $title = $characters->{Data};
         if (grep $_ eq $title, @pages) {
             $parse = 1;
             @pages = grep $_ ne $title, @pages;
@@ -94,7 +98,7 @@ sub characters {
                 $dbh->do("UPDATE edge SET weight=$w WHERE fromuser=$userid AND touser=$previoususerid;");
             }
             else {
-                $dbh->do("INSERT INTO edge VALUES ($userid, $previoususerid, $w, '$currentTitle');");
+                $dbh->do("INSERT INTO edge VALUES ($userid, $previoususerid, $w, '$title');");
             }
         }
         $previoususer = $user;
