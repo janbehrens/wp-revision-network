@@ -2,9 +2,9 @@
  
 use strict;
 use DBI;
-use XML::Parser::PerlSAX;
-use Time::Local 'timelocal_nocheck';
 use Text::CSV;
+use Time::Local 'timelocal_nocheck';
+use XML::Parser::PerlSAX;
 
 package MyHandler;
 
@@ -27,6 +27,8 @@ my $previoustimestamp;
 my $parse;
 my $tag;
 my $title;
+
+$| = 1;
 
 sub new {
     my ($type) = @_;
@@ -65,7 +67,6 @@ sub characters {
         $title = $characters->{Data};
         if (grep $_ eq $title, @pages) {
             $parse = 1;
-            @pages = grep $_ ne $title, @pages;
             print "reading $title...";
         }
     }
@@ -104,6 +105,16 @@ sub characters {
         $previoususer = $user;
         $previoususerid = $userid;
         $previoustimestamp = $timestamp;
+    }
+}
+
+sub end_document{
+    #call the evgen tool
+    $0 =~ /(.+)\//;
+    chdir($1);
+    print "calculating eigenvectors....\n";
+    foreach (@pages) {
+        print `../evgen-bin/evgen "$_"` . "\n";
     }
 }
 
