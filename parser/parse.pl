@@ -3,7 +3,7 @@
 use strict;
 use DBI;
 use XML::Parser::PerlSAX;
-use Time::Local;
+use Time::Local 'timelocal_nocheck';
 use Text::CSV;
 
 package MyHandler;
@@ -71,7 +71,7 @@ sub characters {
     }
     elsif ($tag eq 's') {
         $characters->{Data} =~ /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z$/;  #timestamp format: 2011-01-08T02:14:31Z
-        $timestamp = Time::Local::timelocal($6, $5, $4, $3, $2-1, $1);
+        $timestamp = Time::Local::timelocal_nocheck($6, $5, $4, $3, $2-1, $1);
         #print "\n$timestamp - ".localtime($timestamp);
     }
     elsif ($tag eq 'u') {
