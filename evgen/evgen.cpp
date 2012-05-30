@@ -4,7 +4,9 @@
 //#include <conio.h>
 #include <sstream>
 #include <string>
-//#include <my_global.h>
+#ifdef _WIN32
+	#include <my_global.h>
+#endif
 #include <mysql.h>
 #include "adjacencymatrix.h"
 #include <algorithm>
@@ -169,6 +171,10 @@ int main(int argc, char* argv[]) {
 		cout << "Error: Please provide the article name as argument!" << endl << endl;
 		return EXIT_FAILURE;
 	}
+	bool debugOutput = false;
+	if (argc > 2) {
+		debugOutput = true;
+	}
 	_article = argv[1];
 	cout << "Article: " << _article << endl;
 
@@ -222,12 +228,16 @@ int main(int argc, char* argv[]) {
 	
 	if (rmatrixevd(a, n, vNeeded, wr, wi, vl, vr)) {
 		vector<evItem> ev = getMinimalEigenvalues(wr);
-
-		cout << "Eigenvectors and Eigenvalues saved: " << ((storeEigenvectors(connection, ev, vr, mat) == 0) ? "yes" : "no") << endl;
-		cout << mysql_error(connection) << endl;
 		
-		debugGraph(ev, vr);
-
+		if (ev.size() == 0) {
+			cout << "No valid Eigenvectors found!\nAborting ... ";
+		} else {
+			cout << "Eigenvectors and Eigenvalues saved: " << ((storeEigenvectors(connection, ev, vr, mat) == 0) ? "yes" : "no") << endl;
+			cout << mysql_error(connection) << endl;
+			
+			if (debugOutput)
+				debugGraph(ev, vr);
+		}
 		cout << "Finished" << endl;
 		mysql_close(connection);
 	} else {
