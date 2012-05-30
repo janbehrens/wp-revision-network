@@ -35,5 +35,5 @@
 
 - Compile the c++ program "evgen"
 
-- Run 'evgen "Articlename"'
+- Run 'evgen "Articlename"' (for a debug html output add a second parameter, e.g. 'evgen Articlename debug')
 
