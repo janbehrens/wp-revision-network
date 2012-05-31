@@ -35,20 +35,7 @@
         }
     </script>
 </head>
-<?php
-    //database connection details
-	$Server = "localhost";
-	$User = "root"; 
-	$Passwort = "pw";
-	$DB = "wpdump";
-
-	$Conn = mysql_connect($Server, $User, $Passwort);
-	mysql_select_db($DB, $Conn);
-	mysql_query("set names 'utf8';", $Conn);
-	
-	//onload: various parameters can go here
-	echo '<body onload="Vis.WebGL.Init(' . 1.6 . ')">';
-?>
+<body onload="startWebGL()">
     <div class="page">
         <div class="header">
             <div class="title">
@@ -63,64 +50,56 @@
             </div>
         </div>
         <div class="main">
-			<p>Revision edges with weight not equal zero</p>
-			<table border="1"><tr><th>u</th><th>v</th><th>weight</th></tr>
+            <p><form action="" method="post">
+            <select name='article'>
 <?php
-	$adjmatrix = array();
-	$SQL = "SELECT u.name as fromuser, v.name as touser, e.weight 
-	        FROM edge e 
-	        JOIN user u ON e.fromuser = u.id 
-	        JOIN user v ON e.touser = v.id 
-	        WHERE weight > 0";
+require("config.php");
+$Conn = mysql_connect($Server, $User, $Passwort);
+mysql_select_db($DB, $Conn);
+mysql_query("set names 'utf8';", $Conn);
+
+$SQL = "SELECT article FROM eigenvalue";
+$RS = mysql_query($SQL, $Conn);
+while ($crow = mysql_fetch_row($RS)) {
+    echo "                <option value=\"$crow[0]\"";
+    if ($crow[0] == $_POST['article']) echo " selected=\"selected\"";
+    echo ">$crow[0]</option>\n";
+}
+?>
+            </select>
+            <input type="submit" name="submit"/>
+            </form></p>
+<?php
+if ($article = $_POST['article']) {
+	//edge table
+	$SQL = "SELECT * FROM edge WHERE article='$article'";
+	$RS = mysql_query($SQL, $Conn);
+    echo "			<p><table border=\"1\"><tr><th>u</th><th>v</th><th>weight</th></tr>\n";
+	while ($crow = mysql_fetch_row($RS)) {
+		echo "            <tr><td>$crow[0]</td><td>$crow[1]</td><td>$crow[2]</td></tr>\n";
+	}
+    echo "			</table></p>\n";
+}
+?>
+
+<script type="text/javascript">
+function startWebGL() {
+<?php
+if ($article) {
+	//get eigenvectors and call WebGL
+	$ev = array();
+	$SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article'";
 	$RS = mysql_query($SQL, $Conn);
 	while ($crow = mysql_fetch_row($RS)) {
-		echo "<tr><td>$crow[0]</td><td>$crow[1]</td><td>$crow[2]</td></tr>";
-		
-		//store values in the adjacency matrix
-		if (!array_key_exists($crow[0], $adjmatrix)) {
-			$adjmatrix[$crow[0]] = array();
-		}
-		if (!array_key_exists($crow[1], $adjmatrix[$crow[0]])) {
-			$adjmatrix[$crow[0]][$crow[1]] = 0;
-		}
-		if (!array_key_exists($crow[1], $adjmatrix)) {
-			$adjmatrix[$crow[1]] = array();
-		}
-		if (!array_key_exists($crow[0], $adjmatrix[$crow[1]])) {
-			$adjmatrix[$crow[1]][$crow[0]] = 0;
-		}
-		$adjmatrix[$crow[0]][$crow[1]] += $crow[2];
-		$adjmatrix[$crow[1]][$crow[0]] += $crow[2];
+	    $ev[$crow[0]] = array();
+	    $ev[$crow[0]]['x'] = $crow[1];
+	    $ev[$crow[0]]['y'] = $crow[2];
 	}
+	echo "Vis.WebGL.Init(" . json_encode($ev) . ");\n";
+}
 ?>
-			</table>
-			<p>Adjacency matrix</p>
-<?php
-    //output the matrix and simultaneously store its values in a numerical array (for eigenvalue calculation)
-	echo '<table border="1"><tr><td></td><td>' . implode('</td><td>', array_keys($adjmatrix)) . '</td></tr>';
-	$adjarr = array();
-	$i = 0;
-	foreach (array_keys($adjmatrix) as $row_key) {
-		echo "<tr><td>$row_key</td>";
-		$j = 0;
-		foreach (array_keys($adjmatrix) as $col_key) {
-			if (array_key_exists($row_key, $adjmatrix) && array_key_exists($col_key, $adjmatrix[$row_key])) {
-				echo "<td>".$adjmatrix[$row_key][$col_key]."</td>";
-				$adjarr[$i][$j] = $adjmatrix[$row_key][$col_key];
-			}
-			else {
-				echo "<td>0</td>";
-				$adjarr[$i][$j] = 0;
-			}
-			$j++;
-		}
-		echo "</tr>";
-		$i++;
-	}
-?>
-			</table>
-			<!--eigenvalue calculation-->
-			<p><?php echo var_dump(Lapack::eigenValues($adjarr));?></p>
+}
+</script>
 
             <canvas id="vis-canvas" width="920" height="500"></canvas>
         </div>
@@ -128,7 +107,6 @@
         </div>
     </div>
     <div class="footer">
-        
     </div>
 </body>
 </html>
