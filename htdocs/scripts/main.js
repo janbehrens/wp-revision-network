@@ -12,7 +12,7 @@ Vis.WebGL = {
     //******************************************************************************************
     //* @PUBLIC: Initializes the WebGL stuff
     //******************************************************************************************
-    Init : function(w) {
+    Init : function(positions) {
         if (!Vis.WebGL.CreateContext($('vis-canvas'))) {
             alert("Could not initialise WebGL!");
             return;
@@ -20,10 +20,10 @@ Vis.WebGL = {
         Vis.WebGL.Shaders.Init();
         Vis.WebGL.Buffers.Init();
 
-        Vis.WebGL.Context.clearColor(0.0, 0.0, 0.0, 1.0);
+        Vis.WebGL.Context.clearColor(0.9, 0.9, 0.9, 1.0);
         Vis.WebGL.Context.enable(Vis.WebGL.Context.DEPTH_TEST);
 
-        Vis.WebGL.Scene.Draw(w);
+        Vis.WebGL.Scene.Draw(positions);
     },
     //******************************************************************************************
     //* @PRIVATE:   Create the WebGL context
@@ -53,7 +53,7 @@ Vis.WebGL.Scene = {
     //******************************************************************************************
     //* @PUBLIC: Draws the scene
     //******************************************************************************************
-    Draw : function(w) {
+    Draw : function(positions) {
         var gl = Vis.WebGL.Context;
 		var n = 48;
 		var twoPi = 2.0 * 3.14159;
@@ -74,7 +74,7 @@ Vis.WebGL.Scene = {
 		gl.drawElements(gl.TRIANGLES, Vis.WebGL.Buffers.EllipsisIndex.numItems, gl.UNSIGNED_SHORT, 0);
 
 		//draw user
-		var j = w * n/2;  //do something with the parameter passed from PHP (dummy)
+		var j = 1.6 * n/2;
 		mat4.translate(this.ModelViewMatrix, [1.3*Math.cos((j-1) * twoPi / n), Math.sin((j-1) * twoPi / n), 0.0]); //using the ellipsis' vertex positions as viewpoint. j should depend on the author's position (currently just a dummy).
 		mat4.translate(this.ModelViewMatrix, [0.0, 0.0, 0.000001]);   //bring it to foreground
 		gl.bindBuffer(gl.ARRAY_BUFFER, Vis.WebGL.Buffers.User);
