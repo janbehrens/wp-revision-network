@@ -19,14 +19,13 @@ my @pages = $csv->fields() or die;
 my $dtmax = shift(@ARGV);  #maximum timestamp difference in seconds
 
 my $user;
-my $userid;
 my $timestamp;
 my $previoususer;
-my $previoususerid;
 my $previoustimestamp;
 my $parse;
 my $tag;
 my $title;
+my @pagesread;
 
 $| = 1;
 
@@ -52,10 +51,9 @@ sub end_element {
     my ($self, $element) = @_;
     if ($element->{Name} =~ /^page$/) {
         if ($parse) { print " done.\n"; }
-        if (!@pages) { exit; }
+        if (!@pages) { end_document(); }
         undef $parse;
         undef $previoususer;
-        undef $previoususerid;
         undef $previoustimestamp;
     }
     undef $tag;
@@ -68,54 +66,59 @@ sub characters {
         if (grep $_ eq $title, @pages) {
             $parse = 1;
             print "reading $title...";
+
+            @pages = grep $_ ne $title, @pages;
+            push(@pagesread, $title);
+            
+            $dbh->do("DELETE FROM edge WHERE article='$title';");
         }
     }
     elsif ($tag eq 's') {
-        $characters->{Data} =~ /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z$/;  #timestamp format: 2011-01-08T02:14:31Z
+        #timestamp format: 2011-01-08T02:14:31Z
+        $characters->{Data} =~ /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z$/;
         $timestamp = Time::Local::timelocal_nocheck($6, $5, $4, $3, $2-1, $1);
-        #print "\n$timestamp - ".localtime($timestamp);
     }
     elsif ($tag eq 'u') {
         $user = $characters->{Data};
-        
-        #insert user and get id
-        $dbh->do("INSERT INTO user VALUES (DEFAULT, '$user');");
-        my $sth = $dbh->prepare("SELECT id FROM user WHERE name='$user';");
-        $sth->execute;
-        my @row = $sth->fetchrow_array;
-        $userid = $row[0];
         
         if (defined($previoususer) && $previoususer ne $user) {
             #calculate weight
             my $dt = $timestamp - $previoustimestamp;
             my $w = $dt <= $dtmax ? 1-$dt/$dtmax : 0;
             
-            #insert new revision edge or update weight if it exists
-            my $sth = $dbh->prepare("SELECT weight FROM edge WHERE fromuser=$userid AND touser=$previoususerid;");
-            $sth->execute;
-            my @row = $sth->fetchrow_array;
-            if (@row) {
-                $w += $row[0];
-                $dbh->do("UPDATE edge SET weight=$w WHERE fromuser=$userid AND touser=$previoususerid;");
-            }
-            else {
-                $dbh->do("INSERT INTO edge VALUES ($userid, $previoususerid, $w, '$title');");
+            if ($w > 0) {
+                #insert new revision edge or update weight if it exists
+                my $sth = $dbh->prepare("SELECT weight FROM edge WHERE fromuser='$user' AND touser='$previoususer' AND article='$title';");
+                $sth->execute;
+                my @row = $sth->fetchrow_array;
+                if (@row) {
+                    $w += $row[0];
+                    $dbh->do("UPDATE edge SET weight=$w WHERE fromuser='$user' AND touser='$previoususer' AND article='$title';");
+                } 
+                else {
+                    $dbh->do("INSERT INTO edge VALUES ('$user', '$previoususer', $w, '$title');");
+                }
             }
         }
         $previoususer = $user;
-        $previoususerid = $userid;
         $previoustimestamp = $timestamp;
     }
 }
 
 sub end_document{
+    if (!@pagesread) {
+        print "Article(s) not found. Exiting.\n";
+        exit;
+    }
+    
     #call the evgen tool
     $0 =~ /(.+)\//;
     chdir($1);
     print "calculating eigenvectors....\n";
-    foreach (@pages) {
+    foreach (@pagesread) {
         print `../evgen-bin/evgen "$_"` . "\n";
     }
+    exit;
 }
 
 my $my_handler = MyHandler->new;

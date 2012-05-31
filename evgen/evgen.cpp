@@ -105,11 +105,11 @@ int storeEigenvectors(MYSQL *connection, const vector<evItem>& items, const real
 	map<string, unsigned int> m = mat->GetMatrixItems();
 	map<string, unsigned int>::iterator it;
 	for (it = m.begin(); it != m.end(); ++it) {
-		sql << "INSERT INTO eigenvector SELECT (SELECT id FROM user WHERE name = '" << it->first 
-			<< "'), '" << _article
+		sql << "INSERT INTO eigenvector VALUES ('" << it->first
+			<< "', '" << _article
 			<< "', " << ev[lambdaFirst][it->second] 
 			<< ", " << ev[lambdaSecond][it->second]
-			<< ";";
+			<< ");";
 	}
 	sql << "SET SQL_SAFE_UPDATES = 1;";
 	string query = sql.str();
@@ -193,11 +193,7 @@ int main(int argc, char* argv[]) {
 	//define query
 	stringstream sql;
 	sql << 
-		"SELECT u.name as fromuser, v.name as touser, e.weight "
-		"FROM edge e "
-		"JOIN user u ON e.fromuser = u.id "
-		"JOIN user v ON e.touser = v.id "
-		"WHERE weight > 0 AND article = '" << _article << "';";
+		"SELECT * FROM edge e WHERE article = '" << _article << "';";
 	string ssql = sql.str();
 	int queryResult = mysql_query(connection, ssql.c_str());
 	//'Alan Smithee', 'Ang Lee', 'Aussagenlogik'

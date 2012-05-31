@@ -3,19 +3,18 @@
 - Make sure you have the DBI, Time::Local, Text::CSV and XML::Parser::PerlSAX Perl modules installed.
 
 - Create a MySQL database and perform the following queries:
- CREATE TABLE user (id SERIAL, name VARCHAR(255) UNIQUE);
  CREATE TABLE `edge` (
-  `fromuser` int(11) DEFAULT NULL,
-  `touser` int(11) DEFAULT NULL,
+  `fromuser` varchar(255) DEFAULT NULL,
+  `touser` varchar(255) DEFAULT NULL,
   `weight` float DEFAULT NULL,
   `article` varchar(255) DEFAULT NULL
  );
  CREATE TABLE `eigenvector` (
-  `userid` int(11) NOT NULL,
+  `user` varchar(255) NOT NULL,
   `article` varchar(255) NOT NULL,
   `v1` double NOT NULL COMMENT 'vectorelement to the smallest eigenvalue',
   `v2` double NOT NULL COMMENT 'vectorelement to the 2nd smallest eigenvalue',
-  PRIMARY KEY (`userid`,`article`)
+  PRIMARY KEY (`user`,`article`)
  );
  CREATE TABLE `eigenvalue` (
   `article` varchar(255) NOT NULL,
@@ -23,7 +22,6 @@
   `lambda2` double NOT NULL COMMENT 'second smallest eigenvalue',
   PRIMARY KEY (`article`)
  );
-
 
 - Get a Wikipedia stub file from http://dumps.wikimedia.org/
 
@@ -33,7 +31,9 @@
     DTMAX : the maximum time difference between edits (as integer)
     DUMPFILE : path to the Wikipedia dump file
 
-- Compile the c++ program "evgen"
+2) Eigenvalue generator
 
-- Run 'evgen "Articlename"' (for a debug html output add a second parameter, e.g. 'evgen Articlename debug')
+The 'evgen' tool calculated eigenvalues and associated eigenvectors and is automatically called by the perl parser. Running it should not be necessary except for debugging.
+
+- Run 'evgen-bin/evgen "Articlename"' (for a debug html output add a second parameter, e.g. 'evgen Articlename debug')
 
