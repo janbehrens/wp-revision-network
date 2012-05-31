@@ -50,7 +50,8 @@
             </div>
         </div>
         <div class="main">
-            <p><form action="" method="post">
+            <div>
+            <form action="" method="post">
             <select name='article'>
 <?php
 require("config.php");
@@ -68,17 +69,20 @@ while ($crow = mysql_fetch_row($RS)) {
 ?>
             </select>
             <input type="submit" name="submit"/>
-            </form></p>
+            </form>
+            </div>
 <?php
 if ($article = $_POST['article']) {
-	//edge table
+	//edge table for output
 	$SQL = "SELECT * FROM edge WHERE article='$article'";
 	$RS = mysql_query($SQL, $Conn);
-    echo "			<p><table border=\"1\"><tr><th>u</th><th>v</th><th>weight</th></tr>\n";
+    echo "			<div style=\"margin:1em 0 1em 0\">\n";
+    echo "			<table border=\"1\"><tr><th>u</th><th>v</th><th>weight</th></tr>\n";
 	while ($crow = mysql_fetch_row($RS)) {
 		echo "            <tr><td>$crow[0]</td><td>$crow[1]</td><td>$crow[2]</td></tr>\n";
 	}
-    echo "			</table></p>\n";
+    echo "			</table>\n";
+    echo "			</div>\n";
 }
 ?>
 
@@ -86,16 +90,38 @@ if ($article = $_POST['article']) {
 function startWebGL() {
 <?php
 if ($article) {
-	//get eigenvectors and call WebGL
+    //get eigenvalue and calculate skewness
+	$SQL = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article='$article'";
+	$RS = mysql_query($SQL, $Conn);
+	$crow = mysql_fetch_row($RS);
+	$s = $crow[1]/$crow[0];
+
+	//get eigenvectors
 	$ev = array();
 	$SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article'";
 	$RS = mysql_query($SQL, $Conn);
 	while ($crow = mysql_fetch_row($RS)) {
-	    $ev[$crow[0]] = array();
-	    $ev[$crow[0]]['x'] = $crow[1];
-	    $ev[$crow[0]]['y'] = $crow[2];
+	    $user = array();
+	    $user['name'] = $crow[0];
+	    $user['p1'] = $crow[1];
+	    $user['p2'] = $s * $crow[2];
+	    
+	    //get out-degree and in-degree of author's revisions (argh, so many DB queries... but hey, I'm lazy)
+	    $user['out'] = 0;
+	    $SQL = "SELECT weight FROM edge WHERE fromuser='$crow[0]'";
+	    $RS_1 = mysql_query($SQL, $Conn);
+	    while ($crow_1 = mysql_fetch_row($RS_1)) { $user['out'] += $crow_1[0]; }
+
+	    $user['in'] = 0;
+	    $SQL = "SELECT weight FROM edge WHERE touser='$crow[0]'";
+	    $RS_1 = mysql_query($SQL, $Conn);
+	    while ($crow_1 = mysql_fetch_row($RS_1)) { $user['in'] += $crow_1[0]; }
+
+	    $ev[] = $user;
 	}
-	echo "Vis.WebGL.Init(" . json_encode($ev) . ");\n";
+	
+	//call WebGL
+	echo "Vis.WebGL.Init(" . json_encode($ev) . ", $s);\n";
 }
 ?>
 }

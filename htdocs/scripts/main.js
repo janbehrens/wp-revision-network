@@ -2,6 +2,9 @@
 //* Main visualization namespace
 //******************************************************************************************
 Vis = {
+    positions : null,   //array of authors and their positions
+	s : null,           //the network's skewness
+	scale : null,       //scale factor
 };
 
 //******************************************************************************************
@@ -12,18 +15,21 @@ Vis.WebGL = {
     //******************************************************************************************
     //* @PUBLIC: Initializes the WebGL stuff
     //******************************************************************************************
-    Init : function(positions) {
+    Init : function(positions, s) {
         if (!Vis.WebGL.CreateContext($('vis-canvas'))) {
             alert("Could not initialise WebGL!");
             return;
         }
+        Vis.positions = positions;
+        Vis.s = s;
+        
         Vis.WebGL.Shaders.Init();
         Vis.WebGL.Buffers.Init();
 
         Vis.WebGL.Context.clearColor(0.9, 0.9, 0.9, 1.0);
         Vis.WebGL.Context.enable(Vis.WebGL.Context.DEPTH_TEST);
 
-        Vis.WebGL.Scene.Draw(positions);
+        Vis.WebGL.Scene.Draw();
     },
     //******************************************************************************************
     //* @PRIVATE:   Create the WebGL context
@@ -53,10 +59,10 @@ Vis.WebGL.Scene = {
     //******************************************************************************************
     //* @PUBLIC: Draws the scene
     //******************************************************************************************
-    Draw : function(positions) {
+    Draw : function() {
         var gl = Vis.WebGL.Context;
-		var n = 48;
-		var twoPi = 2.0 * 3.14159;
+        var positions = Vis.positions;
+        var s = Vis.s;
 
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -73,16 +79,27 @@ Vis.WebGL.Scene = {
 		this.SetMatrixUniforms(Vis.WebGL.Shaders.BasicShader);
 		gl.drawElements(gl.TRIANGLES, Vis.WebGL.Buffers.EllipsisIndex.numItems, gl.UNSIGNED_SHORT, 0);
 
-		//draw user
-		var j = 1.6 * n/2;
-		mat4.translate(this.ModelViewMatrix, [1.3*Math.cos((j-1) * twoPi / n), Math.sin((j-1) * twoPi / n), 0.0]); //using the ellipsis' vertex positions as viewpoint. j should depend on the author's position (currently just a dummy).
-		mat4.translate(this.ModelViewMatrix, [0.0, 0.0, 0.000001]);   //bring it to foreground
-		gl.bindBuffer(gl.ARRAY_BUFFER, Vis.WebGL.Buffers.User);
-		gl.vertexAttribPointer(Vis.WebGL.Shaders.BasicShader.vertexPositionAttribute, Vis.WebGL.Buffers.User.itemSize, gl.FLOAT, false, 0, 0);
-		gl.bindBuffer(gl.ARRAY_BUFFER, Vis.WebGL.Buffers.UserColor);
-		gl.vertexAttribPointer(Vis.WebGL.Shaders.BasicShader.vertexColorAttribute, Vis.WebGL.Buffers.UserColor.itemSize, gl.FLOAT, false, 0, 0);
-		this.SetMatrixUniforms(Vis.WebGL.Shaders.BasicShader);
-		gl.drawElements(gl.TRIANGLES, Vis.WebGL.Buffers.UserIndex.numItems, gl.UNSIGNED_SHORT, 0);
+		//draw authors (position is coded here)
+		var inv, x, y;
+		for (var i=0; i<positions.length; i++) {
+		    //involvement = sqrt(x² + y²)
+		    if ((inv = Math.sqrt(Math.pow(positions[i].p1, 2) + Math.pow(positions[i].p2, 2))) != 0) {
+		        x = Vis.scale * positions[i].p1 / inv;
+                y = s * Vis.scale * positions[i].p2 / inv;
+                
+                //set viewpoint on the ellipsis and a tiny bit to the foreground...
+                mat4.translate(this.ModelViewMatrix, [x, y, 0.000001]);
+                
+                gl.bindBuffer(gl.ARRAY_BUFFER, Vis.WebGL.Buffers.Users[i]);
+                gl.vertexAttribPointer(Vis.WebGL.Shaders.BasicShader.vertexPositionAttribute, Vis.WebGL.Buffers.Users[i].itemSize, gl.FLOAT, false, 0, 0);
+                gl.bindBuffer(gl.ARRAY_BUFFER, Vis.WebGL.Buffers.UserColors[i]);
+                gl.vertexAttribPointer(Vis.WebGL.Shaders.BasicShader.vertexColorAttribute, Vis.WebGL.Buffers.UserColors[i].itemSize, gl.FLOAT, false, 0, 0);
+                this.SetMatrixUniforms(Vis.WebGL.Shaders.BasicShader);
+                gl.drawElements(gl.TRIANGLES, Vis.WebGL.Buffers.UserIndices[i].numItems, gl.UNSIGNED_SHORT, 0);
+                //...and back
+                mat4.translate(this.ModelViewMatrix, [-x, -y, 0.0]);
+            }
+		}
 	},
     //******************************************************************************************
     //* @PRIVATE: Sets the matrix uniforms for the given shader program
@@ -181,27 +198,31 @@ Vis.WebGL.Buffers = {
     Ellipsis : null,
 	EllipsisColor : null,
 	EllipsisIndex : null,
-    User : null,
-	UserColor : null,
-	UserIndex : null,
+    Users : Array(),
+	UserColors : Array(),
+	UserIndices : Array(),
     //******************************************************************************************
     //* Initializes the buffers
     //******************************************************************************************
     Init : function() {
         var gl = Vis.WebGL.Context;
-		var n = 48;
-		var twoPi = 2.0 * 3.14159;
+        var positions = Vis.positions;
+        var s = Vis.s;
+        var n = 48;     //number of ellipsis vertices
 
-		//Ellipsis
+		//big ellipsis
 		vertices = [0, 0, 0];
 		var normalData = [0, 0, 1];
-		var unpackedColors = [1, 0, 0, 1];
+		var unpackedColors = [1, 0, 0, 0.8];
 		var cubeVertexIndices = [];
-
+		
+		//scaling factor - FIXME - might need more magic to make the drawing always fit in the screen 
+		Vis.scale = 2; 
+		
 		for (var j = 0; j < n; j++) {
-		    vertices = vertices.concat([1.3*Math.cos((j-1) * twoPi / n), Math.sin((j-1) * twoPi / n), 0.0]);
+		    vertices = vertices.concat([Vis.scale * Math.cos(j * 2*Math.PI/n), s * Vis.scale * Math.sin(j * 2*Math.PI/n), 0.0]);
 		    normalData = normalData.concat([0, 0, 1]);
-		    unpackedColors = unpackedColors.concat([1.0, 0.0, 0.0, 1.0]);
+		    unpackedColors = unpackedColors.concat([1.0, 0.0, 0.0, 0.4]);
 		    cubeVertexIndices = cubeVertexIndices.concat([0,j+1,(j+1<n?j+2:1)]);
 		}
 
@@ -223,35 +244,57 @@ Vis.WebGL.Buffers = {
 		Vis.WebGL.Buffers.EllipsisIndex.itemSize = 1;
 		Vis.WebGL.Buffers.EllipsisIndex.numItems = cubeVertexIndices.length / Vis.WebGL.Buffers.EllipsisIndex.itemSize;
 
-		//User (another ellipsis actually)
-		vertices = [0, 0, 0];
-		normalData = [0, 0, 1];
-		unpackedColors = [0.0, 1.0, 0.4, 1.0];
-		cubeVertexIndices = [];
+		//Authors (more ellipses)
+		var ratio, inv, a, b;
+		var User, UserColor, UserIndex;     //Buffers
+		for (var i=0; i<positions.length; i++) {
+		    if ((inv = Math.sqrt(Math.pow(positions[i].p1, 2) + Math.pow(positions[i].p2, 2))) != 0) {
+		        vertices = [0, 0, 0];
+		        normalData = [0, 0, 1];
+		        unpackedColors = [0.0, 0.8, 0.4, 1.0];
+		        cubeVertexIndices = [];
+		        
+		        ratio = positions[i].out / (positions[i].in + 0.01);    //just to make sure we don't divide by zero
+		        ratio = ratio < 0.333 ? 0.333 : ratio;  //limit the ratio
+		        ratio = ratio > 3 ? 3 : ratio;
+		        
+		        /*  ratio = b / a
+		            inv ~ PI * a * b
+		            =>  inv ~ PI * a * a * ratio
+		            =>  (PI*a*a*ratio) / inv = const.
+		            =>  a² = const. * inv / (PI * ratio)    */
+		        
+		        a = Math.sqrt(0.05 * inv / (Math.PI * ratio));  //the constant may require some testing
+		        b = a * ratio;
+		        
+		        for (var j = 0; j < n; j++) {
+		            vertices = vertices.concat([a * Math.cos(j * 2*Math.PI/n), b * Math.sin(j * 2*Math.PI/n), 0.0]);
+		            normalData = normalData.concat([0, 0, 1]);
+		            unpackedColors = unpackedColors.concat([0.0, 0.8, 0.4, 1.0]);
+		            cubeVertexIndices = cubeVertexIndices.concat([0,j+1,(j+1<n?j+2:1)]);
+		        }
 
-		for (var j = 0; j < n; j++) {
-		    vertices = vertices.concat([0.8*0.1*Math.cos((j-1) * twoPi / n), 0.1*Math.sin((j-1) * twoPi / n), 0.0]);
-		    normalData = normalData.concat([0, 0, 1]);
-		    unpackedColors = unpackedColors.concat([0.0, 1.0, 0.4, 1.0]);
-		    cubeVertexIndices = cubeVertexIndices.concat([0,j+1,(j+1<n?j+2:1)]);
+		        User = gl.createBuffer();
+		        gl.bindBuffer(gl.ARRAY_BUFFER, User);
+		        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+		        User.itemSize = 3;
+		        User.numItems = vertices.length / User.itemSize;
+		        Vis.WebGL.Buffers.Users[i] = User;
+         
+		        UserColor = gl.createBuffer();
+		        gl.bindBuffer(gl.ARRAY_BUFFER, UserColor);
+		        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(unpackedColors), gl.STATIC_DRAW);
+		        UserColor.itemSize = 4;
+		        UserColor.numItems = unpackedColors.length / UserColor.itemSize;
+		        Vis.WebGL.Buffers.UserColors[i] = UserColor;
+
+		        UserIndex = gl.createBuffer();
+		        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, UserIndex);
+		        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
+		        UserIndex.itemSize = 1;
+		        UserIndex.numItems = cubeVertexIndices.length / UserIndex.itemSize;
+		        Vis.WebGL.Buffers.UserIndices[i] = UserIndex;
+		    }
 		}
-
-		Vis.WebGL.Buffers.User = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, Vis.WebGL.Buffers.User);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-		Vis.WebGL.Buffers.User.itemSize = 3;
-		Vis.WebGL.Buffers.User.numItems = vertices.length / Vis.WebGL.Buffers.User.itemSize;
- 
-		Vis.WebGL.Buffers.UserColor = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, Vis.WebGL.Buffers.UserColor);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(unpackedColors), gl.STATIC_DRAW);
-		Vis.WebGL.Buffers.UserColor.itemSize = 4;
-		Vis.WebGL.Buffers.UserColor.numItems = unpackedColors.length / Vis.WebGL.Buffers.UserColor.itemSize;
-
-		Vis.WebGL.Buffers.UserIndex = gl.createBuffer();
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Vis.WebGL.Buffers.UserIndex);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
-		Vis.WebGL.Buffers.UserIndex.itemSize = 1;
-		Vis.WebGL.Buffers.UserIndex.numItems = cubeVertexIndices.length / Vis.WebGL.Buffers.UserIndex.itemSize;
 	}
 };
