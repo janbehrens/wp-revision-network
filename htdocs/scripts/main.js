@@ -4,7 +4,7 @@
 Vis = {
     positions : null,   //array of authors and their positions
 	s : null,           //the network's skewness
-	scale : null,       //scale factor
+	scale : null        //scale factor
 };
 
 //******************************************************************************************
@@ -16,35 +16,35 @@ Vis.WebGL = {
     //* @PUBLIC: Initializes the WebGL stuff
     //******************************************************************************************
     Init : function(positions, s) {
-        if (!Vis.WebGL.CreateContext($('vis-canvas'))) {
+        Vis.WebGL.Canvas.Init();
+        if (!Vis.WebGL.CreateContext()) {
             alert("Could not initialise WebGL!");
             return;
         }
+
         Vis.positions = positions;
         Vis.s = s;
         
         Vis.WebGL.Shaders.Init();
         Vis.WebGL.Buffers.Init();
+        if (Vis.Timeline) {
+            Vis.Timeline.Init();
+        }
 
         Vis.WebGL.Context.clearColor(0.9, 0.9, 0.9, 1.0);
         Vis.WebGL.Context.enable(Vis.WebGL.Context.DEPTH_TEST);
 
         Vis.WebGL.Scene.Draw();
-
-        if (Vis.Timeline) {
-            Vis.Timeline.Init();
-            Vis.Timeline.Draw();
-        }
     },
     //******************************************************************************************
     //* @PRIVATE:   Create the WebGL context
     //* @RETURN:    [bool] true if WebGL context has been created
     //******************************************************************************************
-    CreateContext : function(canvas) {
+    CreateContext : function() {
         try {
-            Vis.WebGL.Context = canvas.getContext("experimental-webgl");
-            Vis.WebGL.Context.viewportWidth = canvas.width;
-            Vis.WebGL.Context.viewportHeight = canvas.height;
+            Vis.WebGL.Context = Vis.WebGL.Canvas.Get().getContext("experimental-webgl");
+            Vis.WebGL.Context.viewportWidth = Vis.WebGL.Canvas.Width;
+            Vis.WebGL.Context.viewportHeight = Vis.WebGL.Canvas.Height;
             return true;
         } catch (e) {
             return false;
@@ -52,6 +52,117 @@ Vis.WebGL = {
         if (!Vis.WebGL.Context) {
             return false;
         }
+    }
+};
+
+//******************************************************************************************
+//* Canvas wrapper
+//******************************************************************************************
+Vis.WebGL.Canvas = {
+    Id      : 'vis-canvas',         //id of the canvas object
+    Width   : 920,                  //canvas width (change for different size)
+    Height  : 500,                  //canvas height (change for different size)
+    Left    : 0,                    //canvas left (automatically set!)
+    Top     : 0,                    //canvas top (automatically set!)
+    //******************************************************************************************
+    //* Gets the canvas object itself
+    //******************************************************************************************
+    Get : function() {
+        return $(this.Id);
+    },
+    //******************************************************************************************
+    //* Canvas wrapper
+    //******************************************************************************************
+    Init : function() {
+        this.SetupLayout();
+        this.RegisterEvents();
+    },
+    //******************************************************************************************
+    //* @PRIVATE:   Registers mouse events
+    //******************************************************************************************
+    RegisterEvents : function() {
+        var canvas = this.Get();
+        canvas.onmousemove = Vis.WebGL.Canvas.Events.OnMouseMove; 
+        canvas.onmousedown = Vis.WebGL.Canvas.Events.OnMouseDown;
+        canvas.onmouseup = Vis.WebGL.Canvas.Events.OnMouseUp;
+        canvas.onmouseout = Vis.WebGL.Canvas.Events.OnMouseOut;
+    },
+    //******************************************************************************************
+    //* @PRIVATE:   Sets up the layout. 
+    //******************************************************************************************
+    SetupLayout : function() {
+        var canvas = this.Get();
+        //set the size of the control
+        canvas.width = this.Width;
+        canvas.height = this.Height;
+
+        //set the position to absolute;
+        canvas.absolutize();
+
+        //now store the relative values
+        this.Left = canvas.getLayout().get('left');
+        this.Top = canvas.getLayout().get('top');
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Takes absolute page coordinates and returns localized coordinates
+    //******************************************************************************************
+    GetLocalizedPosition : function(x, y) {
+        var coords = {
+            x : 0,
+            y : 0
+        };
+
+        if (x >= this.Left && x <= (this.Left + this.Width) && y >= this.Top && y <= (this.Top + this.Height)) {
+            coords.x = (x - this.Left) / this.Width * 2 - 1;
+            coords.y = 1 - (y - this.Top) / this.Height * 2;
+        }
+
+        return coords;
+    }
+};
+
+//******************************************************************************************
+//* Event handling for the canvas object
+//******************************************************************************************
+Vis.WebGL.Canvas.Events = {
+    _pressed    : false,
+    //******************************************************************************************
+    //* Mouse button has been pressed
+    //******************************************************************************************
+    OnMouseDown : function(e) {
+        this._pressed = true;
+    },
+    //******************************************************************************************
+    //* Mouse is moved
+    //******************************************************************************************
+    OnMouseMove : function(e) {
+        if (this._pressed) {
+            var lc = Vis.WebGL.Canvas.GetLocalizedPosition(e.clientX, e.clientY);
+
+            //if timeline available
+            if (Vis.Timeline) {
+                //inside timeline
+                if (lc.y < (Vis.Timeline.Height - 1)) {
+                    if (Vis.Timeline.SelectItem(Vis.Timeline.GetItemIndexBy(lc.x))) {
+                        Vis.WebGL.Scene.Draw();
+                        console.log("here");
+                    }
+                }
+            }
+        }
+    },
+    //******************************************************************************************
+    //* Mouse button has been released
+    //******************************************************************************************
+    OnMouseUp : function(e) {
+        this._pressed = false;
+    },
+    //******************************************************************************************
+    //* Mouse is moved outside the control
+    //******************************************************************************************
+    OnMouseOut : function(e) {
+        if (this._pressed)
+            this._pressed = false;
     }
 };
 
@@ -73,6 +184,18 @@ Vis.WebGL.Scene = {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         this.ResetMatrices(gl);
+
+        var shaderProgram = Vis.WebGL.Shaders.BasicShader;
+        gl.useProgram(shaderProgram);
+
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+		shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+		gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+
+        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
 
 		//draw the ellipsis
 		mat4.translate(this.ModelViewMatrix, [0.0, 0.0, -4.0]);
@@ -104,6 +227,10 @@ Vis.WebGL.Scene = {
                 mat4.translate(this.ModelViewMatrix, [-x, -y, 0.0]);
             }
 		}
+
+        if (Vis.Timeline) {
+            Vis.Timeline.Draw();
+        }
 	},
     //******************************************************************************************
     //* @PUBLIC: Sets the matrix uniforms for the given shader program
@@ -147,17 +274,6 @@ Vis.WebGL.Shaders = {
             alert("Could not initialise shaders (basic)");
             return;
         }
-
-        gl.useProgram(shaderProgram);
-
-        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-
-		shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
-		gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
-
-        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
 
         //init timeline shader
         var fragmentShader = Vis.WebGL.Shaders.GetShader("tl-shader-fs");

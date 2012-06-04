@@ -67,7 +67,7 @@
                 </div>
             </div>
         </div>
-        <div class="main">
+        <div class="main" id="main">
             <div>
             <form action="" method="post">
             <select name='article'>
@@ -94,7 +94,7 @@ if ($article = $_POST['article']) {
 	//edge table for output
 	$SQL = "SELECT * FROM edge WHERE article='$article'";
 	$RS = mysql_query($SQL, $Conn);
-    echo "			<div style=\"margin:1em 0 1em 0\">\n";
+    echo "			<div style=\"margin:1em 0 1em 0; display:none;\">\n";
     echo "			<table border=\"1\"><tr><th>u</th><th>v</th><th>weight</th></tr>\n";
 	while ($crow = mysql_fetch_row($RS)) {
 		echo "            <tr><td>$crow[0]</td><td>$crow[1]</td><td>$crow[2]</td></tr>\n";
@@ -144,8 +144,9 @@ if ($article) {
 ?>
 }
 </script>
-
-            <canvas id="vis-canvas" width="920" height="500"></canvas>
+			<br><br>
+            <canvas id="vis-canvas">
+			</canvas>
         </div>
         <div class="clear">
         </div>

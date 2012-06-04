@@ -5,6 +5,8 @@ Vis.Timeline = {
     _data       : null,
     BackColor   : '#fff',   //back color of the control
     BinColor    : '#0f0',   //color of the bins
+    Width       : 2,        //timeline width (local coords)
+    Height      : 0.3,      //timeline height (local coords)
     //******************************************************************************************
     //* @PUBLIC: Initializes the timeline
     //  @PARAM: data [object]: an array which contains the month values 
@@ -133,8 +135,8 @@ Vis.Timeline = {
     //******************************************************************************************
     Draw : function() {
         var gl = Vis.WebGL.Context;
-        var w = 2;
-        var h = 0.3;
+        var w = this.Width;
+        var h = this.Height;
 
         var shaderProgram = Vis.WebGL.Shaders.TimelineShader;
         gl.useProgram(shaderProgram);
@@ -180,5 +182,30 @@ Vis.Timeline = {
         //timeline rectangle
         this.DrawBorder({ x : -1, y : -1 }, { width : w, height : h }, colors.border, { left : 0.005, top : 0.005, right : 0.005, bottom : 0.005 });
         this.DrawFilledRect({ x : -1, y : -1 }, { width : w, height : h }, colors.timelineBack);
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Gets the item index based on the provided x-coordinate (localized)
+    //******************************************************************************************
+    GetItemIndexBy : function(x) {
+        var sWidth = this.Width / this._data.items.length;
+        //todo: for sure there is an easy formular to calculate the position but for now i dont see it
+        for (var i = 0; i < this._data.items.length; ++i) {
+            if ((-1 + i * sWidth) <= x && x <= (-1 + (i + 1) * sWidth))
+                return i;
+        }
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Change the selection state of an item (sets it to true)
+    //******************************************************************************************
+    SelectItem : function(idx) {
+        if (idx < 0 || idx > this._data.items.length)
+            return false;
+
+        if (!this._data.items[idx].selected) {
+            this._data.items[idx].selected = true;
+            return true;
+        } else {
+            return false;
+        }
     }
 };
