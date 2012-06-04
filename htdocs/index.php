@@ -6,6 +6,7 @@
     <script src="scripts/glMatrix-0.9.5.min.js" type="text/javascript"></script>
     <script src="scripts/prototype.js" type="text/javascript"></script>
     <script src="scripts/main.js" type="text/javascript"></script>
+	<script src="scripts/timeline.js" type="text/javascript"></script>
     <link href="styles/site.css" rel="stylesheet" type="text/css" />
 
     <script id="basic-shader-fs" type="x-shader/x-fragment">
@@ -34,6 +35,23 @@
 			vColor = aVertexColor;
         }
     </script>
+
+	<script id="tl-shader-vs" type="x-shader/x-vertex">
+		attribute vec2 aVertexPosition;
+
+		void main() {
+		  gl_Position = vec4(aVertexPosition, 0, 1);
+		}
+	</script>
+
+	<script id="tl-shader-fs"" type="x-shader/x-fragment">
+		precision mediump float;
+		uniform vec4 uColor;
+
+		void main() {
+			gl_FragColor = uColor;
+		}
+	</script>
 </head>
 <body onload="startWebGL()">
     <div class="page">
@@ -49,7 +67,7 @@
                 </div>
             </div>
         </div>
-        <div class="main">
+        <div class="main" id="main">
             <div>
             <form action="" method="post">
             <select name='article'>
@@ -76,7 +94,7 @@ if ($article = $_POST['article']) {
 	//edge table for output
 	$SQL = "SELECT * FROM edge WHERE article='$article'";
 	$RS = mysql_query($SQL, $Conn);
-    echo "			<div style=\"margin:1em 0 1em 0\">\n";
+    echo "			<div style=\"margin:1em 0 1em 0; display:none;\">\n";
     echo "			<table border=\"1\"><tr><th>u</th><th>v</th><th>weight</th></tr>\n";
 	while ($crow = mysql_fetch_row($RS)) {
 		echo "            <tr><td>$crow[0]</td><td>$crow[1]</td><td>$crow[2]</td></tr>\n";
@@ -126,8 +144,9 @@ if ($article) {
 ?>
 }
 </script>
-
-            <canvas id="vis-canvas" width="920" height="500"></canvas>
+			<br><br>
+            <canvas id="vis-canvas">
+			</canvas>
         </div>
         <div class="clear">
         </div>
