@@ -6,6 +6,7 @@
     <script src="scripts/glMatrix-0.9.5.min.js" type="text/javascript"></script>
     <script src="scripts/prototype.js" type="text/javascript"></script>
     <script src="scripts/main.js" type="text/javascript"></script>
+	<script src="scripts/timeline.js" type="text/javascript"></script>
     <link href="styles/site.css" rel="stylesheet" type="text/css" />
 
     <script id="basic-shader-fs" type="x-shader/x-fragment">
@@ -34,6 +35,23 @@
 			vColor = aVertexColor;
         }
     </script>
+
+	<script id="tl-shader-vs" type="x-shader/x-vertex">
+		attribute vec2 aVertexPosition;
+
+		void main() {
+		  gl_Position = vec4(aVertexPosition, 0, 1);
+		}
+	</script>
+
+	<script id="tl-shader-fs"" type="x-shader/x-fragment">
+		precision mediump float;
+		uniform vec4 uColor;
+
+		void main() {
+			gl_FragColor = uColor;
+		}
+	</script>
 </head>
 <body onload="startWebGL()">
     <div class="page">

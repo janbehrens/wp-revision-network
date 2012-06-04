@@ -30,6 +30,11 @@ Vis.WebGL = {
         Vis.WebGL.Context.enable(Vis.WebGL.Context.DEPTH_TEST);
 
         Vis.WebGL.Scene.Draw();
+
+        if (Vis.Timeline) {
+            Vis.Timeline.Init();
+            Vis.Timeline.Draw();
+        }
     },
     //******************************************************************************************
     //* @PRIVATE:   Create the WebGL context
@@ -67,8 +72,7 @@ Vis.WebGL.Scene = {
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, this.ProjectionMatrix);
-        mat4.identity(this.ModelViewMatrix);
+        this.ResetMatrices(gl);
 
 		//draw the ellipsis
 		mat4.translate(this.ModelViewMatrix, [0.0, 0.0, -4.0]);
@@ -102,12 +106,19 @@ Vis.WebGL.Scene = {
 		}
 	},
     //******************************************************************************************
-    //* @PRIVATE: Sets the matrix uniforms for the given shader program
+    //* @PUBLIC: Sets the matrix uniforms for the given shader program
     //* @PARAM: [shader] the shader program
     //******************************************************************************************
     SetMatrixUniforms : function(shaderProgram) {
         Vis.WebGL.Context.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, this.ProjectionMatrix);
         Vis.WebGL.Context.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, this.ModelViewMatrix);
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Resets the model and projection matrices to initial state
+    //******************************************************************************************
+    ResetMatrices : function(gl) {
+        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, this.ProjectionMatrix);
+        mat4.identity(this.ModelViewMatrix);
     }
 };
 
@@ -116,11 +127,13 @@ Vis.WebGL.Scene = {
 //******************************************************************************************
 Vis.WebGL.Shaders = {
     BasicShader : null,     //Basic shader program
+    TimelineShader : null,  //Timeline shader program
     //******************************************************************************************
     //* Initializes the shaders
     //******************************************************************************************
     Init : function() {
         var gl = Vis.WebGL.Context;
+        //init basic shader
         var fragmentShader = Vis.WebGL.Shaders.GetShader("basic-shader-fs");
         var vertexShader = Vis.WebGL.Shaders.GetShader("basic-shader-vs");
 
@@ -131,7 +144,7 @@ Vis.WebGL.Shaders = {
         gl.linkProgram(shaderProgram);
 
         if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-            alert("Could not initialise shaders");
+            alert("Could not initialise shaders (basic)");
             return;
         }
 
@@ -145,6 +158,21 @@ Vis.WebGL.Shaders = {
 
         shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
         shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+
+        //init timeline shader
+        var fragmentShader = Vis.WebGL.Shaders.GetShader("tl-shader-fs");
+        var vertexShader = Vis.WebGL.Shaders.GetShader("tl-shader-vs");
+
+        this.TimelineShader = gl.createProgram();
+        var shaderProgram = this.TimelineShader;
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders (timeline)");
+            return;
+        }
     },
     //******************************************************************************************
     //* @PUBLIC: Gets the shader specified by id
