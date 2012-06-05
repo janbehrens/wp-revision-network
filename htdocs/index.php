@@ -1,4 +1,47 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+﻿<?php
+    //******************************************************************************************
+    //* Draws the article dropdown
+    //******************************************************************************************
+    function drawArticleDD() {
+        require("config.php");
+
+        echo "<select name='article' id='article'>";
+        echo "<option>Please select ...</option>";
+
+        $Conn = mysql_connect($Server, $User, $Passwort);
+        mysql_select_db($DB, $Conn);
+        mysql_query("set names 'utf8';", $Conn);
+
+        $SQL = "SELECT article FROM eigenvalue";
+        $RS = mysql_query($SQL, $Conn);
+        while ($crow = mysql_fetch_row($RS)) {
+            echo "<option value=\"$crow[0]\">$crow[0]</option>\n";
+        }
+        echo "</select>";
+    }
+
+    //******************************************************************************************
+    //* Draws the weight table
+    //******************************************************************************************
+    function drawWeightTable() {
+        /*
+        if ($article = $_POST['article']) {
+	        //edge table for output
+	        $SQL = "SELECT * FROM edge WHERE article='$article'";
+	        $RS = mysql_query($SQL, $Conn);
+            echo "			<div style=\"margin:1em 0 1em 0; display:none;\">\n";
+            echo "			<table border=\"1\"><tr><th>u</th><th>v</th><th>weight</th></tr>\n";
+	        while ($crow = mysql_fetch_row($RS)) {
+		        echo "            <tr><td>$crow[0]</td><td>$crow[1]</td><td>$crow[2]</td></tr>\n";
+	        }
+            echo "			</table>\n";
+            echo "			</div>\n";
+        }
+        */
+    }
+?>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -9,6 +52,7 @@
 	<script src="scripts/timeline.js" type="text/javascript"></script>
     <link href="styles/site.css" rel="stylesheet" type="text/css" />
 
+    <!-- BASIC SHADER //-->
     <script id="basic-shader-fs" type="x-shader/x-fragment">
         //Basic fragment shader program
         precision mediump float;
@@ -36,6 +80,7 @@
         }
     </script>
 
+    <!-- TIMELINE SHADER //-->
 	<script id="tl-shader-vs" type="x-shader/x-vertex">
 		attribute vec2 aVertexPosition;
 
@@ -53,7 +98,7 @@
 		}
 	</script>
 </head>
-<body onload="startWebGL()">
+<body>
     <div class="page">
         <div class="header">
             <div class="title">
@@ -69,84 +114,18 @@
         </div>
         <div class="main" id="main">
             <div>
-            <form action="" method="post">
-            <select name='article'>
-<?php
-require("config.php");
-$Conn = mysql_connect($Server, $User, $Passwort);
-mysql_select_db($DB, $Conn);
-mysql_query("set names 'utf8';", $Conn);
-
-$SQL = "SELECT article FROM eigenvalue";
-$RS = mysql_query($SQL, $Conn);
-while ($crow = mysql_fetch_row($RS)) {
-    echo "                <option value=\"$crow[0]\"";
-    if ($crow[0] == $_POST['article']) echo " selected=\"selected\"";
-    echo ">$crow[0]</option>\n";
-}
-?>
-            </select>
-            <input type="submit" name="submit"/>
-            </form>
+                <?php drawArticleDD() ?>
+                <button type="button" onclick="Vis.Load()">Load</button>
             </div>
-<?php
-if ($article = $_POST['article']) {
-	//edge table for output
-	$SQL = "SELECT * FROM edge WHERE article='$article'";
-	$RS = mysql_query($SQL, $Conn);
-    echo "			<div style=\"margin:1em 0 1em 0; display:none;\">\n";
-    echo "			<table border=\"1\"><tr><th>u</th><th>v</th><th>weight</th></tr>\n";
-	while ($crow = mysql_fetch_row($RS)) {
-		echo "            <tr><td>$crow[0]</td><td>$crow[1]</td><td>$crow[2]</td></tr>\n";
-	}
-    echo "			</table>\n";
-    echo "			</div>\n";
-}
-?>
 
-<script type="text/javascript">
-function startWebGL() {
-<?php
-if ($article) {
-    //get eigenvalue and calculate skewness
-	$SQL = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article='$article'";
-	$RS = mysql_query($SQL, $Conn);
-	$crow = mysql_fetch_row($RS);
-	$s = $crow[1]/$crow[0];
+			<div id="welcome-screen">
+                <div style="text-align:center; padding:10px;margin-bottom:50px;">
+                    Choose an article and press the load button to visualize the reviewing history of the selected article.
+                </div>
+                <div style="text-align:center"><img src="img.gif" alt="" /></div>
+            </div>
 
-	//get eigenvectors
-	$ev = array();
-	$SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article'";
-	$RS = mysql_query($SQL, $Conn);
-	while ($crow = mysql_fetch_row($RS)) {
-	    $user = array();
-	    $user['name'] = $crow[0];
-	    $user['p1'] = $crow[1];
-	    $user['p2'] = $s * $crow[2];
-	    
-	    //get out-degree and in-degree of author's revisions (argh, so many DB queries... but hey, I'm lazy)
-	    $user['out'] = 0;
-	    $SQL = "SELECT weight FROM edge WHERE fromuser='$crow[0]'";
-	    $RS_1 = mysql_query($SQL, $Conn);
-	    while ($crow_1 = mysql_fetch_row($RS_1)) { $user['out'] += $crow_1[0]; }
-
-	    $user['in'] = 0;
-	    $SQL = "SELECT weight FROM edge WHERE touser='$crow[0]'";
-	    $RS_1 = mysql_query($SQL, $Conn);
-	    while ($crow_1 = mysql_fetch_row($RS_1)) { $user['in'] += $crow_1[0]; }
-
-	    $ev[] = $user;
-	}
-	
-	//call WebGL
-	echo "Vis.WebGL.Init(" . json_encode($ev) . ", $s);\n";
-}
-?>
-}
-</script>
-			<br><br>
-            <canvas id="vis-canvas">
-			</canvas>
+            <canvas id="vis-canvas" style="display:none;"></canvas>
         </div>
         <div class="clear">
         </div>

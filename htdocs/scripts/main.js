@@ -2,9 +2,30 @@
 //* Main visualization namespace
 //******************************************************************************************
 Vis = {
-    positions : null,   //array of authors and their positions
-	s : null,           //the network's skewness
-	scale : null        //scale factor
+    positions   : null,   //array of authors and their positions
+	s           : null,   //the network's skewness
+	scale       : null,   //scale factor
+    //******************************************************************************************
+    //* Loads the webgl screen and hides the welcome screen
+    //******************************************************************************************
+    Load : function() {
+        new Ajax.Request('data.php', {
+			parameters      : {
+				'load'      : true,
+                'article'   : $F('article')
+			},
+			onSuccess       : function(transport) {
+				var res = transport.responseText.evalJSON();
+
+                $('welcome-screen').hide();
+                $('vis-canvas').show();
+                Vis.WebGL.Init(res.positions, res.skewness);
+			},
+			onFailure       : function(transport) {
+				alert("Loading failed!\nPossible reason: " + transport.responseText);
+			}
+		});
+    }
 };
 
 //******************************************************************************************

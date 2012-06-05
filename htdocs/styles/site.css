@@ -101,7 +101,7 @@ first child of the left and right table columns */
 .main {
     padding: 0px 12px;
     margin: 12px 8px 8px 8px;
-    min-height: 420px;
+    height: 650px;
 }
 
 .leftCol {
@@ -272,4 +272,20 @@ div.accountInfo
 .submitButton {
     text-align: right;
     padding-right: 10px;
+}
+
+ #welcome-screen {
+    position:absolute;
+    top:140px;
+    width:920px;
+    height:500px;
+    border:1px solid #D6E5F5;
+}
+        
+#vis-canvas {
+    position:absolute;
+    top:140px;
+    width:920px;
+    height:500px;
+    border:1px solid #D6E5F5;
 }
