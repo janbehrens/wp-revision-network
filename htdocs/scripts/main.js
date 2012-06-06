@@ -9,6 +9,7 @@ Vis = {
     //* Loads the webgl screen and hides the welcome screen
     //******************************************************************************************
     Load : function() {
+        //get main data
         new Ajax.Request('data.php', {
 			parameters      : {
 				'load'      : true,
@@ -17,9 +18,25 @@ Vis = {
 			onSuccess       : function(transport) {
 				var res = transport.responseText.evalJSON();
 
-                $('welcome-screen').hide();
-                $('vis-canvas').show();
-                Vis.WebGL.Init(res.positions, res.skewness);
+                //get timeline data
+                new Ajax.Request('data.php', {
+			        parameters      : {
+				        'timeline'  : true,
+                        'article'   : $F('article')
+			        },
+			        onSuccess       : function(transport) {
+				        var tlres = transport.responseText.evalJSON();
+
+                        $('welcome-screen').hide();
+                        $('vis-canvas').show();
+
+                        Vis.WebGL.Init(res.positions, res.skewness, tlres);
+			        },
+			        onFailure       : function(transport) {
+				        alert("Loading failed!\nPossible reason: " + transport.responseText);
+			        }
+		        });
+                
 			},
 			onFailure       : function(transport) {
 				alert("Loading failed!\nPossible reason: " + transport.responseText);
@@ -36,7 +53,7 @@ Vis.WebGL = {
     //******************************************************************************************
     //* @PUBLIC: Initializes the WebGL stuff
     //******************************************************************************************
-    Init : function(positions, s) {
+    Init : function(positions, s, tl) {
         Vis.WebGL.Canvas.Init();
         if (!Vis.WebGL.CreateContext()) {
             alert("Could not initialise WebGL!");
@@ -49,7 +66,7 @@ Vis.WebGL = {
         Vis.WebGL.Shaders.Init();
         Vis.WebGL.Buffers.Init();
         if (Vis.Timeline) {
-            Vis.Timeline.Init();
+            Vis.Timeline.Init(tl);
         }
 
         Vis.WebGL.Context.clearColor(0.9, 0.9, 0.9, 1.0);
