@@ -29,6 +29,21 @@ my @pagesread;
 
 $| = 1;
 
+sub date_sec2mysql {
+	#takes: date in seconds since 1970 format
+	#returns: date in yyyy-mm-dd hh:mm:ss format
+	my $secdate = shift;
+	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday) = localtime($secdate);
+	$year += 1900;
+	$mon++;
+	$mon = $mon < 10 ? "0$mon" : $mon;
+	$mday = $mday < 10 ? "0$mday" : $mday;
+	$sec = $sec < 10 ? "0$sec" : $sec;
+	$min = $min < 10 ? "0$min" : $min;
+	$hour = $hour < 10 ? "0$hour" : $hour;
+	return qq{$year-$mon-$mday $hour:$min:$sec};
+}
+
 sub new {
     my ($type) = @_;
     return bless {}, $type;
@@ -100,6 +115,10 @@ sub characters {
                 }
             }
         }
+
+		my $date = date_sec2mysql($timestamp);
+		$dbh->do("INSERT INTO entry VALUES ('$user', '$date', '$title');");
+
         $previoususer = $user;
         $previoustimestamp = $timestamp;
     }
