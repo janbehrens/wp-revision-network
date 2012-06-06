@@ -16,32 +16,55 @@
 	    $crow = mysql_fetch_row($RS);
 	    $s = $crow[1]/$crow[0];
 
-	    //get eigenvectors
-	    $ev = array();
+	    //get author's positions
+	    $positions = array();
 	    $SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article'";
 	    $RS = mysql_query($SQL, $Conn);
 	    while ($crow = mysql_fetch_row($RS)) {
 	        $user = array();
 	        $user['name'] = $crow[0];
-	        $user['p1'] = $crow[1];
+	        $user['p1'] = (float) $crow[1];
 	        $user['p2'] = $s * $crow[2];
-	    
-	        //get out-degree and in-degree of author's revisions (argh, so many DB queries... but hey, I'm lazy)
+	        
+	        //get out-degree and in-degree of author's revisions and edge data
 	        $user['out'] = 0;
-	        $SQL = "SELECT weight FROM edge WHERE fromuser='$crow[0]'";
-	        $RS_1 = mysql_query($SQL, $Conn);
-	        while ($crow_1 = mysql_fetch_row($RS_1)) { $user['out'] += $crow_1[0]; }
-
 	        $user['in'] = 0;
+	        $user['revised'] = array();
+	        
+	        $SQL = "SELECT weight, touser FROM edge WHERE fromuser='$crow[0]'";
+	        $RS_1 = mysql_query($SQL, $Conn);
+	        while ($crow_1 = mysql_fetch_row($RS_1)) {
+	            $user['out'] += $crow_1[0];
+	            $user['revised'][$crow_1[1]] = (float) $crow_1[0];
+	        }
+
 	        $SQL = "SELECT weight FROM edge WHERE touser='$crow[0]'";
 	        $RS_1 = mysql_query($SQL, $Conn);
 	        while ($crow_1 = mysql_fetch_row($RS_1)) { $user['in'] += $crow_1[0]; }
 
-	        $ev[] = $user;
+	        if ($user['p1'] != 0 || $user['p2'] != 0) {
+	            $positions[] = $user;
+	        }
 	    }
+	    
+	    /* { "positions" : [
+	            { "name": "61.224.89.221",
+	              "p1": 1,
+	              "p2": 0,
+	              "out": 0.924792,
+	              "in": 0,
+	              "revised": {
+	                "67.71.3.90": 0.924792
+	              }
+	            },
+	            ...
+	         ],
+	         "skewness" : 0.24614068942402
+	       }
+	         */
 
         echo "{ \"positions\" : ";
-        echo json_encode($ev);
+        echo json_encode($positions);
         echo ", \"skewness\" : " . $s . "}";
     }
 

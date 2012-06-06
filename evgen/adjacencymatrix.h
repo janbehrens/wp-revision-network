@@ -25,13 +25,8 @@ class AdjacencyMatrix {
 		// Add an item
 		//**************************************************//
 		void Add(const string& from, const string& to, const double& weight) {
-			if (_matrix[from][to] == 0 && _matrix[to][from] == 0) {
-				_matrix[from][to] = weight;
-				_matrix[to][from] = weight;
-			} else {
 				_matrix[from][to] += weight;
 				_matrix[to][from] += weight;
-			}
 			/*
 			if (_matrix[from][to] == 0) {
 				_matrix[from][to] = weight;		//create a key [from -> to] and assign the weight
@@ -87,7 +82,6 @@ class AdjacencyMatrix {
 			ofstream myfile;
 			myfile.open(file);
 			
-			int i = 0, j = 0;
 			myfile << "<table border=1 cellpadding=2 cellspacing=0 style='border-collapse:collapse;'>" << endl;
 
 			//first generate column header
@@ -106,11 +100,7 @@ class AdjacencyMatrix {
 				myfile << "<td>" << from << "</td>";
 				for(cols = _matrix.begin(); cols != _matrix.end(); ++cols) {
 					string to = cols->first;
-					if (_matrix[from][to] != 0) {
-						myfile << "<td>" << _matrix[from][to] << "</td>";
-					} else {
-						myfile << "<td>0</td>";
-					}
+					myfile << "<td>" << _matrix[from][to] << "</td>";
 				}
 				myfile << "</tr>";
 			}

@@ -101,6 +101,8 @@ Vis.Timeline = {
         var w = this.Width;
         var h = this.Height;
 
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
         var shaderProgram = Vis.WebGL.Shaders.TimelineShader;
         gl.useProgram(shaderProgram);
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");

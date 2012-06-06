@@ -19,26 +19,6 @@
         }
         echo "</select>";
     }
-
-    //******************************************************************************************
-    //* Draws the weight table
-    //******************************************************************************************
-    function drawWeightTable() {
-        /*
-        if ($article = $_POST['article']) {
-	        //edge table for output
-	        $SQL = "SELECT * FROM edge WHERE article='$article'";
-	        $RS = mysql_query($SQL, $Conn);
-            echo "			<div style=\"margin:1em 0 1em 0; display:none;\">\n";
-            echo "			<table border=\"1\"><tr><th>u</th><th>v</th><th>weight</th></tr>\n";
-	        while ($crow = mysql_fetch_row($RS)) {
-		        echo "            <tr><td>$crow[0]</td><td>$crow[1]</td><td>$crow[2]</td></tr>\n";
-	        }
-            echo "			</table>\n";
-            echo "			</div>\n";
-        }
-        */
-    }
 ?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -49,6 +29,7 @@
     <script src="scripts/glMatrix-0.9.5.min.js" type="text/javascript"></script>
     <script src="scripts/prototype.js" type="text/javascript"></script>
     <script src="scripts/main.js" type="text/javascript"></script>
+	<script src="scripts/drawing.js" type="text/javascript"></script>
 	<script src="scripts/timeline.js" type="text/javascript"></script>
     <link href="styles/site.css" rel="stylesheet" type="text/css" />
 
@@ -66,16 +47,13 @@
 
     <script id="basic-shader-vs" type="x-shader/x-vertex">
         //Basic vertex shader program 
-        attribute vec3 aVertexPosition;
+        attribute vec2 aVertexPosition;
 		attribute vec4 aVertexColor;
 
-        uniform mat4 uMVMatrix;
-        uniform mat4 uPMatrix;
-		
 		varying vec4 vColor;
 
         void main(void) {
-            gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            gl_Position = vec4(aVertexPosition, 0, 1);
 			vColor = aVertexColor;
         }
     </script>
@@ -89,7 +67,7 @@
 		}
 	</script>
 
-	<script id="tl-shader-fs"" type="x-shader/x-fragment">
+	<script id="tl-shader-fs" type="x-shader/x-fragment">
 		precision mediump float;
 		uniform vec4 uColor;
 

@@ -13,7 +13,7 @@
 
 using namespace alglib;
 
-char *_article = "Aussagenlogik";
+const char *_article = "Aussagenlogik";
 typedef pair<double, int> evItem;
 
 //******************************************************************************************
@@ -42,18 +42,12 @@ vector<evItem> getMinimalEigenvalues(const real_1d_array& data) {
 	vector<evItem> eigenValues;
 	
 	vector<evItem> ev;
+	int itemsSaved = 0;
 	for (int i = 0; i < data.length(); ++i) {
-		ev.push_back(evItem(data[i], i));
-	}
-	sort(ev.begin(), ev.end(), comparator);
-
-	vector<evItem>::iterator it;
-	unsigned int i = 0;
-	for (it = ev.begin(); it!=ev.end(); ++it) {
-		if (i++ >= 2)
+		eigenValues.push_back(evItem(data[i], i));
+			itemsSaved++;
+		if (itemsSaved >= 2)
 			break;
-
-		eigenValues.push_back(evItem(it->first, it->second));
 	}
 
 	return eigenValues;
@@ -102,13 +96,18 @@ int storeEigenvectors(MYSQL *connection, const vector<evItem>& items, const real
 		<< ");"
 		<< "SET SQL_SAFE_UPDATES = 0; DELETE FROM eigenvector WHERE article = '" << _article << "';";
 
+	ae_int_t n = mat->GetCount();
+	real_2d_array evT;
+	evT.setlength(n, n);
+	rmatrixtranspose(n, n, ev, 0, 0, evT, 0, 0);
+
 	map<string, unsigned int> m = mat->GetMatrixItems();
 	map<string, unsigned int>::iterator it;
 	for (it = m.begin(); it != m.end(); ++it) {
 		sql << "INSERT INTO eigenvector VALUES ('" << it->first
 			<< "', '" << _article
-			<< "', " << ev[lambdaFirst][it->second] 
-			<< ", " << ev[lambdaSecond][it->second]
+			<< "', " << evT[lambdaFirst][it->second]
+			<< ", " << evT[lambdaSecond][it->second]
 			<< ");";
 	}
 	sql << "SET SQL_SAFE_UPDATES = 1;";
@@ -213,26 +212,29 @@ int main(int argc, char* argv[]) {
 
 	//now the adjacency matrix, eigenvalues and eigenvectors are generated
 	//mat->DebugTable("test.html");
+	//cout << mat->GetAdjacencyMatrix().tostring(6) << endl;
 	//http://www.alglib.net/translator/man/manual.cpp.html#sub_rmatrixevd
 	real_2d_array a = mat->GetAdjacencyMatrix();	
-	ae_int_t vNeeded = 3;							//both eigenvectors are returned
 	ae_int_t n = mat->GetCount();					//size of the matrix
-	real_1d_array wr;								//real parts of the eigenvalues
-    real_1d_array wi;								//imaginary parts
-    real_2d_array vl;								//left eigenvectors
-    real_2d_array vr;								//right eigenvectors
+	ae_int_t zNeeded = 1;							//eigenvectors are returned
+	bool isUpper = true;							//storage forḿat
+	real_1d_array d;								//eigenvalues in ascending order
+    real_2d_array z;								//contains the eigenvectors
 	
-	if (rmatrixevd(a, n, vNeeded, wr, wi, vl, vr)) {
-		vector<evItem> ev = getMinimalEigenvalues(wr);
+	if (smatrixevd(a, n, zNeeded, isUpper, d, z)) {
+		//cout << d.tostring(6) << endl;
+		//cout << z.tostring(6) << endl;
+
+		vector<evItem> ev = getMinimalEigenvalues(d);
 		
 		if (ev.size() == 0) {
 			cout << "No valid Eigenvectors found!\nAborting ... ";
 		} else {
-			cout << "Eigenvectors and Eigenvalues saved: " << ((storeEigenvectors(connection, ev, vr, mat) == 0) ? "yes" : "no") << endl;
+			cout << "Eigenvectors and Eigenvalues saved: " << ((storeEigenvectors(connection, ev, z, mat) == 0) ? "yes" : "no") << endl;
 			cout << mysql_error(connection) << endl;
 			
 			if (debugOutput)
-				debugGraph(ev, vr);
+				debugGraph(ev, z);
 		}
 		cout << "Finished" << endl;
 		mysql_close(connection);
