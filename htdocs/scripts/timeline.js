@@ -20,44 +20,7 @@ Vis.Timeline = {
     //          item.selected [bool] ... true if the item is selected
     //******************************************************************************************
     Init        : function(data) {
-        //this._data = data;
-        //Debug
-        this._data = {
-            start       : 012010,
-            end         : 062010,
-            max         : 7,
-            items       : [{
-                month   : 1,
-                year    : 2010,
-                amount  : 2,
-                selected: false
-            }, {
-                month   : 2,
-                year    : 2010,
-                amount  : 5,
-                selected: true
-            }, {
-                month   : 3,
-                year    : 2010,
-                amount  : 1,
-                selected: true
-            }, {
-                month   : 4,
-                year    : 2010,
-                amount  : 7,
-                selected: true
-            }, {
-                month   : 5,
-                year    : 2010,
-                amount  : 3,
-                selected: false
-            }, {
-                month   : 6,
-                year    : 2010,
-                amount  : 4,
-                selected: false
-            }]
-        };
+        this._data = data;
     },
     //******************************************************************************************
     //* Draws a filled rectangle
@@ -174,9 +137,9 @@ Vis.Timeline = {
         var d = this._data;
         var sWidth = w / d.items.length;
         for (var i = 0; i < this._data.items.length; ++i) {
-            var sHeight = d.items[i].amount / d.max * h;
+            var sHeight = d.items[i].a / d.max * h;
             this.DrawFilledRect({ x : -1 + (i * sWidth), y : -1 }, { width : 0.002, height : h }, colors.border);
-            this.DrawFilledRect({ x : -1 + (i * sWidth), y : -1 }, { width : sWidth, height : sHeight }, (d.items[i].selected) ? colors.binSelected : colors.binUnSelected);
+            this.DrawFilledRect({ x : -1 + (i * sWidth), y : -1 }, { width : sWidth, height : sHeight }, (d.items[i].s) ? colors.binSelected : colors.binUnSelected);
         }
 
         //timeline rectangle

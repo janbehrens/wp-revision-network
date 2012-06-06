@@ -23,6 +23,78 @@
   PRIMARY KEY (`article`)
  );
 
+CREATE TABLE `entry` (
+  `userid` varchar(255) NOT NULL,
+  `timestamp` datetime NOT NULL,
+  `article` varchar(255) NOT NULL
+)
+
+-- --------------------------------------------------------------------------------
+-- Routine DDL
+-- Note: comments before and after the routine body will not be stored by the server
+-- --------------------------------------------------------------------------------
+DELIMITER $$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `getEdges`(art varchar(255), dmax int)
+BEGIN
+    DECLARE currentUser varchar(255);
+    DECLARE lastUser  varchar(255);
+    DECLARE currentTimestamp datetime;
+    DECLARE lastTimestamp datetime;
+    DECLARE dt int;
+    DECLARE w float;
+    DECLARE wdt float;
+    DECLARE done INT DEFAULT FALSE;
+    
+    DECLARE cur CURSOR FOR SELECT userid, timestamp FROM wpdump.entry
+    WHERE article = art
+    ORDER BY timestamp;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    SET lastUser = '';
+    SET w = 0;
+    
+    DROP TABLE IF EXISTS tmp;
+    CREATE TEMPORARY TABLE tmp (fromuser  varchar(255), touser  varchar(255), weight float);
+    ALTER TABLE tmp ADD PRIMARY KEY CLUSTERED (fromuser, touser);
+    
+    OPEN cur;
+    read_loop: LOOP
+        #SET done = FALSE;
+        FETCH cur INTO currentUser, currentTimestamp;
+        
+        IF done THEN
+          LEAVE read_loop;
+        END IF;
+        
+        IF currentUser <> lastUser AND lastUser <> '' THEN
+            SET dt = timestampdiff(second, lastTimestamp, currentTimestamp);
+            IF dt < dmax THEN
+                SET wdt = 1 - (dt / dmax);
+            ELSE
+                SET wdt = 0;
+            END IF;
+            
+            SELECT count(*) INTO @w FROM tmp WHERE fromuser = currentUser AND touser = lastUser;
+            IF @w > 0 THEN
+                #SELECT weight INTO @w FROM tmp WHERE fromuser = currentUser AND touser = lastUser;
+                #UPDATE tmp SET weight = (@w + wdt) WHERE fromuser = currentUser AND touser = lastUser;
+                UPDATE tmp
+                SET weight = (weight + wdt)
+                WHERE fromuser = currentUser AND touser = lastUser;
+            ELSE
+                INSERT INTO tmp VALUES (currentUser, lastUser, wdt);
+            END IF;
+            
+        END IF;
+        
+        SET lastUser = currentUser;
+        SET lastTimestamp = currentTimestamp;
+    END LOOP;
+    CLOSE cur;
+END;
+
+
 - Get a Wikipedia stub file from http://dumps.wikimedia.org/
 
 - Run 'perl parse.pl CONNECTION ARTICLES DTMAX DUMPFILE' with
