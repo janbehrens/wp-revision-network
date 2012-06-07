@@ -3,7 +3,7 @@
 use strict;
 use DBI;
 use Text::CSV;
-use Time::Local 'timelocal_nocheck';
+use Time::Local;
 use XML::Parser::PerlSAX;
 
 package MyHandler;
@@ -26,6 +26,8 @@ my $parse;
 my $tag;
 my $title;
 my @pagesread;
+my $tsdata;
+my $skip;
 
 $| = 1;
 
@@ -86,14 +88,20 @@ sub characters {
             push(@pagesread, $title);
             
             $dbh->do("DELETE FROM edge WHERE article='$title';");
+            $dbh->do("DELETE FROM entry WHERE article='$title';");
         }
     }
     elsif ($tag eq 's') {
         #timestamp format: 2011-01-08T02:14:31Z
-        $characters->{Data} =~ /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z$/;
-        $timestamp = Time::Local::timelocal_nocheck($6, $5, $4, $3, $2-1, $1);
+        $tsdata = $characters->{Data};
+        $tsdata =~ /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z$/;
+        $skip = 0;
+        eval {
+            $timestamp = Time::Local::timelocal($6, $5, $4, $3, $2-1, $1);
+        };
+        if ($@) { $skip = 1; }
     }
-    elsif ($tag eq 'u') {
+    elsif ($tag eq 'u' && !$skip) {
         $user = $characters->{Data};
         
         if (defined($previoususer) && $previoususer ne $user) {
