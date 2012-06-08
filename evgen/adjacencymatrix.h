@@ -6,9 +6,13 @@
 #include <map>
 #include <iostream>
 #include "linalg.h"
+#include "Eigen\Eigenvalues"
 
 using namespace std;
 using namespace alglib;
+
+using Eigen::MatrixXd;
+using Eigen::EigenSolver;
 
 //**************************************************//
 // AdjacencyMatrix
@@ -38,7 +42,7 @@ class AdjacencyMatrix {
 		}
 
 		//**************************************************//
-		// Calculates the eigenvectors for the given matrix
+		// Gets the adjacency matrix
 		//**************************************************//
 		real_2d_array GetAdjacencyMatrix() {
 			int n = GetCount();
@@ -60,6 +64,30 @@ class AdjacencyMatrix {
 				j = 0;
 			}
 			return a;
+		}
+
+		//**************************************************//
+		// Gets the adjacency matrix
+		//**************************************************//
+		MatrixXd GetAdjacencyMatrixXd() {
+			int n = GetCount();
+			unsigned int i = 0, j = 0;
+
+			MatrixXd m(n, n);
+
+			map<string, map<string, double> >::iterator rows;
+			map<string, map<string, double> >::iterator cols;
+			for(rows = _matrix.begin(); rows != _matrix.end(); ++rows) {
+				string from = rows->first;
+				for(cols = _matrix.begin(); cols != _matrix.end(); ++cols) {
+					string to = cols->first;
+					double val = _matrix[from][to]; 
+					m(i, j++) = val;
+				}
+				i++;
+				j = 0;
+			}
+			return m;
 		}
 
 		//**************************************************//
