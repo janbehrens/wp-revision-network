@@ -3,31 +3,43 @@
 - Make sure you have the DBI, Time::Local, Text::CSV and XML::Parser::PerlSAX Perl modules installed.
 
 - Create a MySQL database and perform the following queries:
- CREATE TABLE `edge` (
-  `fromuser` varchar(255) DEFAULT NULL,
-  `touser` varchar(255) DEFAULT NULL,
-  `weight` float DEFAULT NULL,
-  `article` varchar(255) DEFAULT NULL
- );
- CREATE TABLE `eigenvector` (
+
+CREATE TABLE `edge` (
+  `fromuser` varchar(255) NOT NULL,
+  `touser` varchar(255) NOT NULL,
+  `weight` float NOT NULL,
+  `article` varchar(255) NOT NULL,
+  `sid` varchar(255) NOT NULL
+);
+
+CREATE TABLE `eigenvalue` (
+  `article` varchar(255) NOT NULL,
+  `lambda1` double NOT NULL COMMENT 'smallest eigenvalue',
+  `lambda2` double NOT NULL COMMENT 'second smallest eigenvalue',
+  `sid` varchar(255) NOT NULL,
+  PRIMARY KEY (`article`,`sid`)
+);
+
+CREATE TABLE `eigenvector` (
   `user` varchar(255) NOT NULL,
   `article` varchar(255) NOT NULL,
   `v1` double NOT NULL COMMENT 'vectorelement to the smallest eigenvalue',
   `v2` double NOT NULL COMMENT 'vectorelement to the 2nd smallest eigenvalue',
-  PRIMARY KEY (`user`,`article`)
- );
- CREATE TABLE `eigenvalue` (
-  `article` varchar(255) NOT NULL,
-  `lambda1` double NOT NULL COMMENT 'smallest eigenvalue',
-  `lambda2` double NOT NULL COMMENT 'second smallest eigenvalue',
-  PRIMARY KEY (`article`)
- );
+  `sid` varchar(255) NOT NULL,
+  PRIMARY KEY (`user`,`article`,`sid`)
+);
 
 CREATE TABLE `entry` (
   `userid` varchar(255) NOT NULL,
   `timestamp` datetime NOT NULL,
   `article` varchar(255) NOT NULL
-)
+);
+
+CREATE TABLE `evgen` (
+  `sid` varchar(255) NOT NULL,
+  `finished` bit(1) NOT NULL,
+  PRIMARY KEY (`sid`)
+);
 
 -- --------------------------------------------------------------------------------
 -- Routine DDL
@@ -35,7 +47,7 @@ CREATE TABLE `entry` (
 -- --------------------------------------------------------------------------------
 DELIMITER $$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `getEdges`(art varchar(255), dmax int)
+CREATE DEFINER=`root`@`localhost` PROCEDURE `getEdges`(art varchar(255), sid varchar(255), dmax int)
 BEGIN
     DECLARE currentUser varchar(255);
     DECLARE lastUser  varchar(255);
@@ -54,9 +66,9 @@ BEGIN
     SET lastUser = '';
     SET w = 0;
     
-    DROP TABLE IF EXISTS tmp;
-    CREATE TEMPORARY TABLE tmp (fromuser  varchar(255), touser  varchar(255), weight float);
-    ALTER TABLE tmp ADD PRIMARY KEY CLUSTERED (fromuser, touser);
+    SET SQL_SAFE_UPDATES = 0;
+    
+    DELETE FROM edge WHERE edge.sid = sid;
     
     OPEN cur;
     read_loop: LOOP
@@ -75,15 +87,19 @@ BEGIN
                 SET wdt = 0;
             END IF;
             
-            SELECT count(*) INTO @w FROM tmp WHERE fromuser = currentUser AND touser = lastUser;
+            SELECT count(*) INTO @w FROM edge WHERE fromuser = currentUser AND touser = lastUser
+            AND article = art AND edge.sid = sid;
             IF @w > 0 THEN
                 #SELECT weight INTO @w FROM tmp WHERE fromuser = currentUser AND touser = lastUser;
                 #UPDATE tmp SET weight = (@w + wdt) WHERE fromuser = currentUser AND touser = lastUser;
-                UPDATE tmp
+                UPDATE edge
                 SET weight = (weight + wdt)
-                WHERE fromuser = currentUser AND touser = lastUser;
+                WHERE fromuser = currentUser AND touser = lastUser
+                AND article = art AND edge.sid = sid;
             ELSE
-                INSERT INTO tmp VALUES (currentUser, lastUser, wdt);
+                IF wdt <> 0 THEN
+                    INSERT INTO edge VALUES (currentUser, lastUser, wdt, art, sid);
+                END IF;
             END IF;
             
         END IF;
@@ -92,7 +108,10 @@ BEGIN
         SET lastTimestamp = currentTimestamp;
     END LOOP;
     CLOSE cur;
-END;
+    
+       
+    SET SQL_SAFE_UPDATES = 1;
+END
 
 
 - Get a Wikipedia stub file from http://dumps.wikimedia.org/
@@ -105,7 +124,7 @@ END;
 
 2) Eigenvalue generator
 
-The 'evgen' tool calculated eigenvalues and associated eigenvectors and is automatically called by the perl parser. Running it should not be necessary except for debugging.
+The 'evgen' tool calculated eigenvalues and associated eigenvectors and is automatically called by the php script.
 
-- Run 'evgen-bin/evgen "Articlename"' (for a debug html output add a second parameter, e.g. 'evgen Articlename debug')
+- Run 'evgen "Articlename" "SessionID" ' (for a debug html output add a third parameter, e.g. 'evgen Articlename xyz debug')
 
