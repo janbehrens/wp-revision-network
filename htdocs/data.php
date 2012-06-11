@@ -1,24 +1,61 @@
 ﻿<?php
     //******************************************************************************************
+    //* executes the ev-gen tool to calculate the eigenvalues/eigenvectors
+    //* runs on windows only, make sure the specified path has execute permission
+    //******************************************************************************************
+    function execEvGenWindows($article, $sid) {
+        //$line = system("evgen-bin\\evgen.exe \"$article\" \"$sid\"", $result);
+        return shell_exec("evgen-bin\\evgen.exe \"$article\" \"$sid\"");
+    }
+
+    //******************************************************************************************
+    //* executes the ev-gen tool to calculate the eigenvalues/eigenvectors
+    //* runs on linux only
+    //******************************************************************************************
+    function execEvGenLinux() {
+        //TODO: execute
+    }
+
+    //******************************************************************************************
     //* generates the data
     //* TODO: prevent SQL injection (maybe)
     //******************************************************************************************
     function getData($article) {
         require("config.php");
+        $sid = session_id();
 
         $Conn = mysql_connect($Server, $User, $Passwort);
         mysql_select_db($DB, $Conn);
         mysql_query("set names 'utf8';", $Conn);
 
+        //calculate weights
+        mysql_query("call getEdges('$article', '$sid', 600)", $Conn);
+
+        //calculate eigenvectors
+        execEvGenWindows($article, $sid);
+
+        //this is part check's if the evgen tool has finished inserting the data
+        //todo: check if an error occured
+        while (true) {
+            $SQL = "SELECT finished FROM evgen WHERE sid = '$sid'";
+            $RS = mysql_query($SQL, $Conn);
+	        $crow = mysql_fetch_row($RS);
+
+            if ($crow[0] == 0) {
+                usleep(250000);
+            } else
+                break;
+        }
+
         //get eigenvalue and calculate skewness
-	    $SQL = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article='$article'";
+	    $SQL = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article='$article' and sid = '$sid'";
 	    $RS = mysql_query($SQL, $Conn);
 	    $crow = mysql_fetch_row($RS);
 	    $s = $crow[1]/$crow[0];
 
 	    //get author's positions
 	    $positions = array();
-	    $SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article'";
+	    $SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article' and sid = '$sid'";
 	    $RS = mysql_query($SQL, $Conn);
 	    while ($crow = mysql_fetch_row($RS)) {
 	        $user = array();
@@ -31,14 +68,14 @@
 	        $user['in'] = 0;
 	        $user['revised'] = array();
 	        
-	        $SQL = "SELECT weight, touser FROM edge WHERE fromuser='$crow[0]'";
+	        $SQL = "SELECT weight, touser FROM edge WHERE fromuser='$crow[0]' and sid = '$sid'";
 	        $RS_1 = mysql_query($SQL, $Conn);
 	        while ($crow_1 = mysql_fetch_row($RS_1)) {
 	            $user['out'] += $crow_1[0];
 	            $user['revised'][$crow_1[1]] = (float) $crow_1[0];
 	        }
 
-	        $SQL = "SELECT weight FROM edge WHERE touser='$crow[0]'";
+	        $SQL = "SELECT weight FROM edge WHERE touser='$crow[0]' and sid = '$sid'";
 	        $RS_1 = mysql_query($SQL, $Conn);
 	        while ($crow_1 = mysql_fetch_row($RS_1)) { $user['in'] += $crow_1[0]; }
 
@@ -161,10 +198,19 @@
         */
     }
 
-    $article = $_POST['article'];
-    if ($_POST['load']) {
-        getData($article);
-    } else if ($_POST['timeline']) {
-        getTimelineData($article);
+    //******************************************************************************************
+    // main function
+    //******************************************************************************************
+    function main() {
+        session_start();
+
+        $article = $_POST['article'];
+        if ($_POST['load']) {
+            getData($article);
+        } else if ($_POST['timeline']) {
+            getTimelineData($article);
+        }
     }
+
+    main();
 ?>

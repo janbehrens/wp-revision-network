@@ -24,45 +24,6 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="alglibinternal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="alglibmisc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dataanalysis.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="diffequations.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="fasttransforms.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="integration.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="interpolation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="linalg.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="optimization.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="solvers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="specialfunctions.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="statistics.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="AdjacencyMatrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -75,45 +36,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="evgen.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="alglibinternal.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="alglibmisc.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="dataanalysis.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="diffequations.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="fasttransforms.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="integration.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="interpolation.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="linalg.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="optimization.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="solvers.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="specialfunctions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="statistics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

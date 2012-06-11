@@ -5,11 +5,9 @@
 #include <vector>
 #include <map>
 #include <iostream>
-#include "linalg.h"
 #include "Eigen\Eigenvalues"
 
 using namespace std;
-using namespace alglib;
 
 using Eigen::MatrixXd;
 using Eigen::EigenSolver;
@@ -39,31 +37,6 @@ class AdjacencyMatrix {
 			} else {
 				_matrix[from][to] += weight;	//add/subtract the weight to the key [from -> to]
 			}*/
-		}
-
-		//**************************************************//
-		// Gets the adjacency matrix
-		//**************************************************//
-		real_2d_array GetAdjacencyMatrix() {
-			int n = GetCount();
-			unsigned int i = 0, j = 0;
-
-			real_2d_array a;
-			a.setlength(n, n);
-
-			map<string, map<string, double> >::iterator rows;
-			map<string, map<string, double> >::iterator cols;
-			for(rows = _matrix.begin(); rows != _matrix.end(); ++rows) {
-				string from = rows->first;
-				for(cols = _matrix.begin(); cols != _matrix.end(); ++cols) {
-					string to = cols->first;
-					double val = _matrix[from][to]; 
-					a(i, j++) = val;
-				}
-				i++;
-				j = 0;
-			}
-			return a;
 		}
 
 		//**************************************************//
