@@ -3,7 +3,7 @@
 use strict;
 use DBI;
 use Text::CSV;
-use Time::Local;
+use Time::Local 'timelocal_nocheck';
 use XML::Parser::PerlSAX;
 
 package MyHandler;
@@ -26,8 +26,6 @@ my $parse;
 my $tag;
 my $title;
 my @pagesread;
-my $tsdata;
-my $skip;
 
 $| = 1;
 
@@ -88,42 +86,16 @@ sub characters {
             push(@pagesread, $title);
             
             $dbh->do("DELETE FROM edge WHERE article='$title';");
-            $dbh->do("DELETE FROM entry WHERE article='$title';");
         }
     }
     elsif ($tag eq 's') {
         #timestamp format: 2011-01-08T02:14:31Z
-        $tsdata = $characters->{Data};
-        $tsdata =~ /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z$/;
-        $skip = 0;
-        eval {
-            $timestamp = Time::Local::timelocal($6, $5, $4, $3, $2-1, $1);
-        };
-        if ($@) { $skip = 1; }
+        $characters->{Data} =~ /^(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)Z$/;
+        $timestamp = Time::Local::timelocal_nocheck($6, $5, $4, $3, $2-1, $1);
     }
-    elsif ($tag eq 'u' && !$skip) {
+    elsif ($tag eq 'u') {
         $user = $characters->{Data};
         
-        if (defined($previoususer) && $previoususer ne $user) {
-            #calculate weight
-            my $dt = $timestamp - $previoustimestamp;
-            my $w = $dt <= $dtmax ? 1-$dt/$dtmax : 0;
-            
-            if ($w > 0) {
-                #insert new revision edge or update weight if it exists
-                my $sth = $dbh->prepare("SELECT weight FROM edge WHERE fromuser='$user' AND touser='$previoususer' AND article='$title';");
-                $sth->execute;
-                my @row = $sth->fetchrow_array;
-                if (@row) {
-                    $w += $row[0];
-                    $dbh->do("UPDATE edge SET weight=$w WHERE fromuser='$user' AND touser='$previoususer' AND article='$title';");
-                } 
-                else {
-                    $dbh->do("INSERT INTO edge VALUES ('$user', '$previoususer', $w, '$title');");
-                }
-            }
-        }
-
 		my $date = date_sec2mysql($timestamp);
 		$dbh->do("INSERT INTO entry VALUES ('$user', '$date', '$title');");
 
@@ -136,14 +108,6 @@ sub end_document{
     if (!@pagesread) {
         print "Article(s) not found. Exiting.\n";
         exit;
-    }
-    
-    #call the evgen tool
-    $0 =~ /(.+)\//;
-    chdir($1);
-    print "calculating eigenvectors....\n";
-    foreach (@pagesread) {
-        print `../evgen-bin/evgen "$_"` . "\n";
     }
     exit;
 }
