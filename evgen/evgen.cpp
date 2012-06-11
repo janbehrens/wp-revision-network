@@ -54,29 +54,6 @@ vector<evItem> getMinimalEigenvalues(const real_1d_array& data) {
 }
 
 //******************************************************************************************
-//* Stores the eigenvalues in the database
-//* - connection [MYSQL]: the mysql connection
-//* - items [vector]: contains the minimal and the 2nd minimal eigenvalues
-//* @returns: 0 if saved
-//******************************************************************************************
-//int storeEigenvalues(MYSQL *connection, const vector<evItem>& items) {
-//	string query = 
-//		"DELETE FROM eigenvalue WHERE article = '{0}';"
-//		"INSERT INTO eigenvalue (article, lambda1, lambda2) VALUES ('{0}', {1}, {2});";
-//	query.replace(query.find("{0}"), 3, _article);
-//	query.replace(query.find("{0}"), 3, _article);
-//	query.replace(query.find("{1}"), 3, to_string(items[0].first));
-//	query.replace(query.find("{2}"), 3, to_string(items[1].first));
-//
-//	int val = mysql_query(connection, query.c_str());
-//	if (val == 0) {
-//		MYSQL_RES *res = mysql_use_result(connection);
-//		mysql_free_result(res);
-//	}
-//	return val;
-//}
-
-//******************************************************************************************
 //* Stores the eigenvectors for the corresponding users in the database
 //* - connection [MYSQL]: the mysql connection
 //* - items [vector]: contains the minimal and the 2nd minimal eigenvalues
@@ -119,6 +96,46 @@ int storeEigenvectors(MYSQL *connection, const vector<evItem>& items, const real
 		mysql_free_result(res);
 	}
 	return val;
+}
+
+//******************************************************************************************
+//* Stores the eigenvectors for the corresponding users in the database using the Eigen library
+//******************************************************************************************
+int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd> es, AdjacencyMatrix *mat) {
+	stringstream sql;
+	sql << "DELETE FROM eigenvalue WHERE article = '" << _article << "';"
+		<< "INSERT INTO eigenvalue (article, lambda1, lambda2) VALUES ('" << _article 
+		<< "', " << es.eigenvalues()[0]
+		<< ", " << es.eigenvalues()[1]
+		<< ");"
+		<< "SET SQL_SAFE_UPDATES = 0; DELETE FROM eigenvector WHERE article = '" << _article << "';";
+
+	Eigen::VectorXd v1 = es.eigenvectors().col(0);
+	Eigen::VectorXd v2 = es.eigenvectors().col(1);
+	
+	map<string, unsigned int> m = mat->GetMatrixItems();
+	map<string, unsigned int>::iterator it;
+	for (it = m.begin(); it != m.end(); ++it) {
+		sql << "INSERT INTO eigenvector VALUES ('" << it->first
+			<< "', '" << _article
+			<< "', " << v1.row(it->second)
+			<< ", " << v2.row(it->second)
+			<< ");";
+	}
+	sql << "SET SQL_SAFE_UPDATES = 1;";
+	string query = sql.str();
+
+	int val = mysql_query(connection, query.c_str());
+	if (val == 0) {
+		MYSQL_RES *res = mysql_store_result(connection);
+		mysql_free_result(res);
+	}
+
+	return val;
+	/*cout << "Eigen-l1: " << es.eigenvalues()[0] << endl;
+	cout << "Eigen-l2: " << es.eigenvalues()[1] << endl << endl;
+
+	cout << es.eigenvectors().col(0) << endl << endl << es.eigenvectors().col(1) << endl;*/
 }
 
 //******************************************************************************************
@@ -210,39 +227,62 @@ int main(int argc, char* argv[]) {
 
 	cout << "Items: " << mat->GetCount() << endl;
 
+	Eigen::SelfAdjointEigenSolver<MatrixXd> es(mat->GetAdjacencyMatrixXd());
+	
+	if (debugOutput) {
+		cout << "Eigen-l1: " << es.eigenvalues()[0] << endl;
+		cout << "Eigen-l2: " << es.eigenvalues()[1] << endl << endl;
+		cout << es.eigenvectors().col(0) << endl << endl << es.eigenvectors().col(1) << endl;
+	}
+
+	if (es.eigenvalues().count() > 0) {
+		storeEigenvectorsX(connection, es, mat);
+		cout << "Finished" << endl;
+	} else {
+		cout << "No valid Eigenvectors found!\nAborting ... " << endl;
+	}
+	mysql_close(connection);
+	return 0;
+
 	//now the adjacency matrix, eigenvalues and eigenvectors are generated
 	//mat->DebugTable("test.html");
 	//cout << mat->GetAdjacencyMatrix().tostring(6) << endl;
 	//http://www.alglib.net/translator/man/manual.cpp.html#sub_rmatrixevd
-	real_2d_array a = mat->GetAdjacencyMatrix();	
-	ae_int_t n = mat->GetCount();					//size of the matrix
-	ae_int_t zNeeded = 1;							//eigenvectors are returned
-	bool isUpper = true;							//storage forḿat
-	real_1d_array d;								//eigenvalues in ascending order
-    real_2d_array z;								//contains the eigenvectors
 	
-	if (smatrixevd(a, n, zNeeded, isUpper, d, z)) {
-		//cout << d.tostring(6) << endl;
-		//cout << z.tostring(6) << endl;
+	//UNCOMMENT THIS PART TO ACTIVATE THE OLD ALGLIB CALCULATION
+	//real_2d_array a = mat->GetAdjacencyMatrix();	
+	//ae_int_t n = mat->GetCount();					//size of the matrix
+	//ae_int_t zNeeded = 1;							//eigenvectors are returned
+	//bool isUpper = true;							//storage forḿat
+	//real_1d_array d;								//eigenvalues in ascending order
+ //   real_2d_array z;								//contains the eigenvectors
+	//
+	////cout << "The eigenvalues of A are:" << endl << es.eigenvalues() << endl;
+	////cout << "The matrix of eigenvectors, V, is:" << endl << es.eigenvectors() << endl << endl;
+	//
 
-		vector<evItem> ev = getMinimalEigenvalues(d);
-		
-		if (ev.size() == 0) {
-			cout << "No valid Eigenvectors found!\nAborting ... ";
-		} else {
-			cout << "Eigenvectors and Eigenvalues saved: " << ((storeEigenvectors(connection, ev, z, mat) == 0) ? "yes" : "no") << endl;
-			cout << mysql_error(connection) << endl;
-			
-			if (debugOutput)
-				debugGraph(ev, z);
-		}
-		cout << "Finished" << endl;
-		mysql_close(connection);
-	} else {
-		cout << "EVD-Calculation failed" << endl;
-		mysql_close(connection);
-		return 1;
-	}
+	//if (smatrixevd(a, n, zNeeded, isUpper, d, z)) {
+	//	//cout << d.tostring(6) << endl;
+	//	//cout << z.tostring(6) << endl;
+
+	//	vector<evItem> ev = getMinimalEigenvalues(d);
+	//	
+	//	if (ev.size() == 0) {
+	//		cout << "No valid Eigenvectors found!\nAborting ... ";
+	//	} else {
+	//		cout << "Eigenvectors and Eigenvalues saved: " << ((storeEigenvectors(connection, ev, z, mat) == 0) ? "yes" : "no") << endl;
+	//		cout << mysql_error(connection) << endl;
+	//		
+	//		if (debugOutput)
+	//			debugGraph(ev, z);
+	//	}
+	//	cout << "Finished" << endl;
+	//	mysql_close(connection);
+	//} else {
+	//	cout << "EVD-Calculation failed" << endl;
+	//	mysql_close(connection);
+	//	return 1;
+	//}
 	
 	delete(mat);
 	return 0;
