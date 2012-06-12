@@ -92,8 +92,22 @@
         </div>
         <div class="main" id="main">
             <div>
-                <?php drawArticleDD() ?>
-                <button type="button" onclick="Vis.Load()">Load</button>
+                <table border="0" cellspacing="4" cellpadding="0">
+                    <tr>
+                        <td>Article:</td>
+                        <td><?php drawArticleDD() ?></td>
+                        <td>Max response:</td>
+                        <td>
+                            <select name="dmax" id="dmax">
+                                <option value="300">5 minutes</option>
+                                <option value="600" selected>10 minutes</option>
+                                <option value="1800">30 minutes</option>
+                                <option value="3600">1 hour</option>
+                            </select>
+                        </td>
+                        <td><button type="button" onclick="Vis.Load()" class="button" id="btnLoad">Load</button></td>
+                    </tr>
+                </table>
             </div>
 
 			<div id="welcome-screen">
@@ -104,6 +118,32 @@
             </div>
 
             <canvas id="vis-canvas" style="display:none;"></canvas>
+            
+            <div id="loading" style="display:none">
+                <div id="loading-indicator"></div>
+            </div>
+
+            <div id="rearrange" style="display:none">
+                <div class="ra-title">Rearrange time period</div>
+                <div class="ra-content">
+                    You have clicked on a bar in the timeline.<br>
+                    You can rearrange the visualisation of the conflicts by picking a second bar in the timeline.<br>
+                    <br>
+                    <table>
+                        <tr>
+                            <td align="right">First item: </td>
+                            <td id="ra-first">08-2010</td>
+                        </tr>
+                        <tr>
+                            <td align="right" valign="top" nowrap>Second item: </td>
+                            <td id="ra-second">Hold the [SHIFT]-Key and pick a second item in the timeline. Then press "Rearrange" or click "Cancel" to restore the default view</td>
+                        </tr>
+                    </table>
+                    <br>
+                    <button class="button" type="button" id="btnRearrange" onclick="Vis.Timeline.Events.OnButtonRearrangeClick()" disabled>Rearrange</button>
+                    <button class="button" type="button"  onclick="Vis.Timeline.Events.OnButtonCancelClick()">Cancel</button>
+                </div>
+            </div>
         </div>
         <div class="clear">
         </div>

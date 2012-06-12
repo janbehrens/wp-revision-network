@@ -86,8 +86,11 @@ int main(int argc, char* argv[]) {
 	}
 	_article = argv[1];
 	_sid = argv[2];
-	cout << "Article: " << _article << endl;
-	cout << "SID: " << _sid << endl;
+
+	if (debugOutput) {
+		cout << "Article: " << _article << endl;
+		cout << "SID: " << _sid << endl;
+	}
 
 	MYSQL *connection, mysql;
 	MYSQL_RES *result;
@@ -119,9 +122,20 @@ int main(int argc, char* argv[]) {
 		mysql_free_result(result);
 	}
 
-	cout << "Items: " << mat->GetCount() << endl;
+	if (debugOutput) {
+		cout << "Items: " << mat->GetCount() << endl;
+	}
 
-	Eigen::SelfAdjointEigenSolver<MatrixXd> es(mat->GetAdjacencyMatrixXd());
+	MatrixXd am = mat->GetAdjacencyMatrixXd();
+	//empty matrix, abort
+	if (am.count() == 0) {
+		cout << 0 << endl;
+		mysql_close(connection);
+		delete(mat);
+		return 0;
+	}
+
+	Eigen::SelfAdjointEigenSolver<MatrixXd> es(am);
 	
 	if (debugOutput) {
 		cout << "Eigen-l1: " << es.eigenvalues()[0] << endl;
@@ -131,9 +145,13 @@ int main(int argc, char* argv[]) {
 
 	if (es.eigenvalues().count() > 0) {
 		storeEigenvectorsX(connection, es, mat);
-		cout << "Finished" << endl;
+		cout << mat->GetCount() << endl;
 	} else {
-		cout << "No valid Eigenvectors found!\nAborting ... " << endl;
+		if (debugOutput) {
+			cout << "No valid Eigenvectors found!\nAborting ... " << endl;
+		} else {
+			cout << 0 << endl;
+		}
 	}
 	
 	//mat->DebugTable("test.html");
