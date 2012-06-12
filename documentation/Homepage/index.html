@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Visualisierung 2</title>
+    <link href="doc/style/site.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="title">
+                <h1>
+                    Visualisierung 2 - Documentation
+                </h1>
+            </div>
+            <div class="loginDisplay"></div>
+            <div class="clear hideSkiplink">
+                <div class="menu">
+                </div>
+            </div>
+        </div>
+        <div class="main" id="main">
+            <div class="hl">0. Preamble</div>
+            <div class="content">
+                This project is based on the paper <a href="http://www.inf.uni-konstanz.de/algo/publications/bl-vacuge-07.pdf" target="_blank">Visual Analysis of Controversy in User-generated Encyclopedias</a>
+                and has been implemented for the course<br />
+                <i>Visualisierung 2</i> at the TU Vienna<br />
+                The complete source code can be downloaded at <a href="https://github.com/antofosm/wp-revision-network" target="_blank">GitHub</a>.<br /><br />
+                The complete program is platform independent, we have tested it with Linux and Windows 7
+            </div>
+        
+            <div class="hl">1. How to install</div>
+            <div class="content">
+
+                <h3>Prerequisites</h3>
+                <div>
+                    <ul>
+                        <li>WebGL enabled Browser - we have tested it with Mozilla Firefox</li>
+                        <li>Perl interpretor (on Windows: Strawberry Perl)</li>
+                        <li>MySQL</li>
+                        <li>Web Server (IIS with PHP or Apache)</li>
+                    </ul>
+                </div>
+
+                <h3>MySQL</h3>
+                <div>
+                    Once you have installed MySQL execute the following commands:
+                    <div class="collapsible">
+                        <pre>
+    CREATE TABLE `edge` (
+        `fromuser` varchar(255) NOT NULL,
+        `touser` varchar(255) NOT NULL,
+        `weight` float NOT NULL,
+        `article` varchar(255) NOT NULL,
+        `sid` varchar(255) NOT NULL
+    );
+
+    CREATE TABLE `eigenvalue` (
+        `article` varchar(255) NOT NULL,
+        `lambda1` double NOT NULL COMMENT 'smallest eigenvalue',
+        `lambda2` double NOT NULL COMMENT 'second smallest eigenvalue',
+        `sid` varchar(255) NOT NULL,
+        PRIMARY KEY (`article`,`sid`)
+    );
+
+    CREATE TABLE `eigenvector` (
+        `user` varchar(255) NOT NULL,
+        `article` varchar(255) NOT NULL,
+        `v1` double NOT NULL COMMENT 'vectorelement to the smallest eigenvalue',
+        `v2` double NOT NULL COMMENT 'vectorelement to the 2nd smallest eigenvalue',
+        `sid` varchar(255) NOT NULL,
+        PRIMARY KEY (`user`,`article`,`sid`)
+    );
+
+    CREATE TABLE `entry` (
+        `userid` varchar(255) NOT NULL,
+        `timestamp` datetime NOT NULL,
+        `article` varchar(255) NOT NULL
+    );
+
+    CREATE TABLE `evgen` (
+        `sid` varchar(255) NOT NULL,
+        `finished` bit(1) NOT NULL,
+        PRIMARY KEY (`sid`)
+    );
+
+    -- --------------------------------------------------------------------------------
+    -- Routine DDL
+    -- Note: comments before and after the routine body will not be stored by the server
+    -- --------------------------------------------------------------------------------
+    DELIMITER $$
+
+    CREATE DEFINER=`root`@`localhost` PROCEDURE `getEdges`(art varchar(255), sid varchar(255), dmax int, sd varchar(25), ed varchar(25))
+    BEGIN
+        DECLARE currentUser varchar(255);
+        DECLARE lastUser  varchar(255);
+        DECLARE currentTimestamp datetime;
+        DECLARE lastTimestamp datetime;
+        DECLARE dt int;
+        DECLARE w float;
+        DECLARE wdt float;
+        DECLARE done INT DEFAULT FALSE;
+    
+        DECLARE cur CURSOR FOR SELECT userid, timestamp FROM wpdump.entry
+        WHERE article = art
+        AND timestamp >= COALESCE(STR_TO_DATE(sd, '%Y-%m-%d'), (SELECT min(timestamp) FROM wpdump.entry WHERE article = art))
+        AND timestamp <= COALESCE(STR_TO_DATE(ed, '%Y-%m-%d'), (SELECT max(timestamp) FROM wpdump.entry WHERE article = art))
+        ORDER BY timestamp;
+    
+        DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+        SET lastUser = '';
+        SET w = 0;
+    
+        SET SQL_SAFE_UPDATES = 0;
+    
+        DELETE FROM edge WHERE edge.sid = sid;
+    
+        OPEN cur;
+        read_loop: LOOP
+            #SET done = FALSE;
+            FETCH cur INTO currentUser, currentTimestamp;
+        
+            IF done THEN
+                LEAVE read_loop;
+            END IF;
+        
+            IF currentUser <> lastUser AND lastUser <> '' THEN
+                SET dt = timestampdiff(second, lastTimestamp, currentTimestamp);
+                IF dt < dmax THEN
+                    SET wdt = 1 - (dt / dmax);
+                ELSE
+                    SET wdt = 0;
+                END IF;
+            
+                SELECT count(*) INTO @w FROM edge WHERE fromuser = currentUser AND touser = lastUser
+                AND article = art AND edge.sid = sid;
+                IF @w > 0 THEN
+                    #SELECT weight INTO @w FROM tmp WHERE fromuser = currentUser AND touser = lastUser;
+                    #UPDATE tmp SET weight = (@w + wdt) WHERE fromuser = currentUser AND touser = lastUser;
+                    UPDATE edge
+                    SET weight = (weight + wdt)
+                    WHERE fromuser = currentUser AND touser = lastUser
+                    AND article = art AND edge.sid = sid;
+                ELSE
+                    IF wdt <> 0 THEN
+                        INSERT INTO edge VALUES (currentUser, lastUser, wdt, art, sid);
+                    END IF;
+                END IF;
+            
+            END IF;
+        
+            SET lastUser = currentUser;
+            SET lastTimestamp = currentTimestamp;
+        END LOOP;
+        CLOSE cur;
+    
+       
+        SET SQL_SAFE_UPDATES = 1;
+    END
+                        </pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hl">2. How to use the parser</div>
+            <div class="content">bla bla bla</div>
+
+            <div class="hl">3. How to use the program</div>
+            <div class="content">bla bla bla</div>
+        </div>
+        <div class="clear">
+        </div>
+    </div>
+    <div class="footer">
+    </div>
+</body>
+</html>
