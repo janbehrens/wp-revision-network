@@ -5,7 +5,11 @@
 #include <vector>
 #include <map>
 #include <iostream>
-#include "Eigen\Eigenvalues"
+#ifdef _WIN32
+	#include "Eigen\Eigenvalues"
+#else
+	#include "Eigen/Eigenvalues"
+#endif
 
 using namespace std;
 
