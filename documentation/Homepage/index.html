@@ -45,125 +45,56 @@
                 <h3>MySQL</h3>
                 <div>
                     Once you have installed MySQL execute the following commands:
-                    <div class="collapsible">
-                        <pre>
-    CREATE TABLE `edge` (
-        `fromuser` varchar(255) NOT NULL,
-        `touser` varchar(255) NOT NULL,
-        `weight` float NOT NULL,
-        `article` varchar(255) NOT NULL,
-        `sid` varchar(255) NOT NULL
-    );
-
-    CREATE TABLE `eigenvalue` (
-        `article` varchar(255) NOT NULL,
-        `lambda1` double NOT NULL COMMENT 'smallest eigenvalue',
-        `lambda2` double NOT NULL COMMENT 'second smallest eigenvalue',
-        `sid` varchar(255) NOT NULL,
-        PRIMARY KEY (`article`,`sid`)
-    );
-
-    CREATE TABLE `eigenvector` (
-        `user` varchar(255) NOT NULL,
-        `article` varchar(255) NOT NULL,
-        `v1` double NOT NULL COMMENT 'vectorelement to the smallest eigenvalue',
-        `v2` double NOT NULL COMMENT 'vectorelement to the 2nd smallest eigenvalue',
-        `sid` varchar(255) NOT NULL,
-        PRIMARY KEY (`user`,`article`,`sid`)
-    );
-
-    CREATE TABLE `entry` (
-        `userid` varchar(255) NOT NULL,
-        `timestamp` datetime NOT NULL,
-        `article` varchar(255) NOT NULL
-    );
-
-    CREATE TABLE `evgen` (
-        `sid` varchar(255) NOT NULL,
-        `finished` bit(1) NOT NULL,
-        PRIMARY KEY (`sid`)
-    );
-
-    -- --------------------------------------------------------------------------------
-    -- Routine DDL
-    -- Note: comments before and after the routine body will not be stored by the server
-    -- --------------------------------------------------------------------------------
-    DELIMITER $$
-
-    CREATE DEFINER=`root`@`localhost` PROCEDURE `getEdges`(art varchar(255), sid varchar(255), dmax int, sd varchar(25), ed varchar(25))
-    BEGIN
-        DECLARE currentUser varchar(255);
-        DECLARE lastUser  varchar(255);
-        DECLARE currentTimestamp datetime;
-        DECLARE lastTimestamp datetime;
-        DECLARE dt int;
-        DECLARE w float;
-        DECLARE wdt float;
-        DECLARE done INT DEFAULT FALSE;
-    
-        DECLARE cur CURSOR FOR SELECT userid, timestamp FROM wpdump.entry
-        WHERE article = art
-        AND timestamp >= COALESCE(STR_TO_DATE(sd, '%Y-%m-%d'), (SELECT min(timestamp) FROM wpdump.entry WHERE article = art))
-        AND timestamp <= COALESCE(STR_TO_DATE(ed, '%Y-%m-%d'), (SELECT max(timestamp) FROM wpdump.entry WHERE article = art))
-        ORDER BY timestamp;
-    
-        DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-        SET lastUser = '';
-        SET w = 0;
-    
-        SET SQL_SAFE_UPDATES = 0;
-    
-        DELETE FROM edge WHERE edge.sid = sid;
-    
-        OPEN cur;
-        read_loop: LOOP
-            #SET done = FALSE;
-            FETCH cur INTO currentUser, currentTimestamp;
-        
-            IF done THEN
-                LEAVE read_loop;
-            END IF;
-        
-            IF currentUser <> lastUser AND lastUser <> '' THEN
-                SET dt = timestampdiff(second, lastTimestamp, currentTimestamp);
-                IF dt < dmax THEN
-                    SET wdt = 1 - (dt / dmax);
-                ELSE
-                    SET wdt = 0;
-                END IF;
-            
-                SELECT count(*) INTO @w FROM edge WHERE fromuser = currentUser AND touser = lastUser
-                AND article = art AND edge.sid = sid;
-                IF @w > 0 THEN
-                    #SELECT weight INTO @w FROM tmp WHERE fromuser = currentUser AND touser = lastUser;
-                    #UPDATE tmp SET weight = (@w + wdt) WHERE fromuser = currentUser AND touser = lastUser;
-                    UPDATE edge
-                    SET weight = (weight + wdt)
-                    WHERE fromuser = currentUser AND touser = lastUser
-                    AND article = art AND edge.sid = sid;
-                ELSE
-                    IF wdt <> 0 THEN
-                        INSERT INTO edge VALUES (currentUser, lastUser, wdt, art, sid);
-                    END IF;
-                END IF;
-            
-            END IF;
-        
-            SET lastUser = currentUser;
-            SET lastTimestamp = currentTimestamp;
-        END LOOP;
-        CLOSE cur;
-    
-       
-        SET SQL_SAFE_UPDATES = 1;
-    END
-                        </pre>
+                    <div class="code">
+                        <iframe src="doc/mysql.html" style="width:900px; height:1450px;" frameborder="0" scrolling="no"></iframe>
                     </div>
+                </div>
+
+                <h3>Perl</h3>
+                <div>
+                    If you are using Windows you have to install an additional Perl interpretor. A good one is 
+                    <a href="http://strawberryperl.com/" target="_blank">Strawberry Perl</a>. Be careful with the 64-bit version as it might not recognize
+                    additional modules.<br />
+                    <br />
+                    The parser needs the following modules:
+                    <ul>
+                        <li>DBI</li>
+                        <li>Time::Local</li>
+                        <li>Text::CSV</li>
+                        <li>XML::Parser::PerlSAX</li>
+                    </ul>
+                    By default DBI and Time::Local should be already available.<br />
+                    For the Text::CSV just execute <code>cpan Text::CSV</code> and <code>cpan XML::Parser::PerlSAX </code> for the PerlSAX module
+                </div>
+
+                <h3>PHP</h3>
+                <div>
+                    If you have a Linux environment Apache should be installed and therefore PHP should work out of the box.<br />
+                    On Windows you have to install the Internet Information Services (IIS) and install PHP. If you are using IIS7 (default in Windows 7)
+                    click <a href="http://php.iis.net/" target="_blank">here</a> for an installation guide. For older versions you can use 
+                    <a href="http://www.iisadmin.co.uk/?p=4" target="_blank">this</a> solution.<br />
+                    <br />
+                    After PHP has been installed successfully use the config.php in the htdocs folder and enter the MySQL credentials there.
                 </div>
             </div>
 
             <div class="hl">2. How to use the parser</div>
-            <div class="content">bla bla bla</div>
+            <div class="content">
+                The parser will extract data out of a wikipedia-metabase-file. These files can be found 
+                <a href="http://dumps.wikimedia.org/backup-index.html" target="_blank">here</a>.<br />
+                Pick a wiki dump (e.g. <a href="http://dumps.wikimedia.org/dewiki/20120603/" target="_blank">dewiki for 01-06-2012</a>) and
+                now look for <code>stub-meta-history.xml</code> files (these files contain no page text, only revision metadata.).<br />
+                Be careful because these file can be very big (about 30GB).<br />
+                <br />
+                Once you have downloaded and extracted a file you can use the parser.<br />
+                <br />
+                Run <code>perl parse.pl CONNECTION ARTICLES DUMPFILE</code><br />
+                <ul>
+                    <li>CONNECTION : database credentials in the form "dbname,dbhost,dbuser,dbpass"</li>
+                    <li>ARTICLES : page titles whose history you want to analyse as comma-separated list, e.g. "Alan Smithee, Ang Lee, Aussagenlogik" (use those double quotes!)</li>
+                    <li>DUMPFILE : path to the Wikipedia dump file</li>
+                </ul>
+            </div>
 
             <div class="hl">3. How to use the program</div>
             <div class="content">bla bla bla</div>

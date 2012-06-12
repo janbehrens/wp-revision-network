@@ -109,7 +109,6 @@ first child of the left and right table columns */
     line-height: normal;
 }
 
-
 /* TAB MENU   
 ----------------------------------------------------------*/
 
@@ -269,4 +268,10 @@ div.accountInfo
     margin-left:10px;
     margin-bottom:20px;
     text-align:justify;
+}
+
+code {
+    font-size:9pt;
+    padding:2px 5px;
+    background:#eee;
 }
