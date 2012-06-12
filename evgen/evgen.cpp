@@ -11,7 +11,7 @@
 #include "adjacencymatrix.h"
 
 const char *_article = "";
-char *_sid = "";
+const char *_sid = "";
 
 typedef pair<double, int> evItem;
 
