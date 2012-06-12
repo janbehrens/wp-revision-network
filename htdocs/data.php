@@ -4,15 +4,15 @@
     //* runs on windows only, make sure the specified path has execute permission
     //******************************************************************************************
     function execEvGenWindows($article, $sid) {
-        //$line = system("evgen-bin\\evgen.exe \"$article\" \"$sid\"", $result);
-        return shell_exec("evgen-bin\\evgen.exe \"$article\" \"$sid\"");
+        $result = shell_exec("evgen-bin\\evgen.exe \"$article\" \"$sid\"");
+        return $result != 0;
     }
 
     //******************************************************************************************
     //* executes the ev-gen tool to calculate the eigenvalues/eigenvectors
     //* runs on linux only
     //******************************************************************************************
-    function execEvGenLinux() {
+    function execEvGenLinux($article, $sid) {
         //TODO: execute
     }
 
@@ -29,29 +29,47 @@
         mysql_query("set names 'utf8';", $Conn);
 
         //calculate weights
-        mysql_query("call getEdges('$article', '$sid', 600)", $Conn);
+        $sd = getDateBy('sd');
+        $ed = getDateBy('ed');
+        $dmax = $_POST['dmax'];
 
+        if ($ed == null) {
+            mysql_query("call getEdges('$article', '$sid', $dmax, null, null)", $Conn);
+        } else {
+            //2006-03-31T22:00:00.000Z
+            $sdf = $sd->format('Y-m-d');
+            $edf = $ed->format('Y-m-d');
+            mysql_query("call getEdges('$article', '$sid', $dmax, '$sdf', '$edf')", $Conn);
+        }
+
+        $result = false;
         //calculate eigenvectors
-        execEvGenWindows($article, $sid);
+        if (PHP_OS == 'Linux') {
+            $result = execEvGenLinux($article, $sid);
+        } else {
+            $result = execEvGenWindows($article, $sid);
+        }
 
         //this is part check's if the evgen tool has finished inserting the data
         //todo: check if an error occured
-        while (true) {
-            $SQL = "SELECT finished FROM evgen WHERE sid = '$sid'";
-            $RS = mysql_query($SQL, $Conn);
-	        $crow = mysql_fetch_row($RS);
+        if ($result) {
+            while (true) {
+                $SQL = "SELECT finished FROM evgen WHERE sid = '$sid'";
+                $RS = mysql_query($SQL, $Conn);
+	            $crow = mysql_fetch_row($RS);
 
-            if ($crow[0] == 0) {
-                usleep(250000);
-            } else
-                break;
+                if ($crow[0] == 0) {
+                    usleep(250000);
+                } else
+                    break;
+            }
         }
 
         //get eigenvalue and calculate skewness
 	    $SQL = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article='$article' and sid = '$sid'";
 	    $RS = mysql_query($SQL, $Conn);
 	    $crow = mysql_fetch_row($RS);
-	    $s = $crow[1]/$crow[0];
+	    $s = ($crow[0] == 0) ? 0 : $crow[1]/$crow[0];
 
 	    //get author's positions
 	    $positions = array();
@@ -162,6 +180,9 @@
         $current = $startDate;
         $item = "";
         $max = 0;
+        $sd = getDateBy('sd');
+        $ed = getDateBy('ed');
+        
         while ($current <= $endDate) {
             $m = $current->format("m");
             $y = $current->format("Y");
@@ -174,7 +195,13 @@
                     $max = $v;
             }
             
-            $item .= "{ \"m\" : \"$m\", \"y\" : $y, \"a\" : $v, \"s\" : true }";
+            $sel = "true";
+            if ($sd != null && $ed != null) {
+                if ($current < $sd || $current > $ed)
+                    $sel = "false";
+            }
+
+            $item .= "{ \"m\" : \"$m\", \"y\" : $y, \"a\" : $v, \"s\" : $sel }";
             if ($current < $endDate)
                 $item .= ",";
             
@@ -196,6 +223,17 @@
                 selected: false
             }
         */
+    }
+
+    //******************************************************************************************
+    // returns a date for a given name (post) or null
+    //******************************************************************************************
+    function getDateBy($name) {
+        if ($_POST[$name] == null) {
+            return null;
+        } else {
+            return new DateTime(date('d-m-Y', strtotime($_POST[$name])));
+        }
     }
 
     //******************************************************************************************

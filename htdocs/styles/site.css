@@ -101,7 +101,7 @@ first child of the left and right table columns */
 .main {
     padding: 0px 12px;
     margin: 12px 8px 8px 8px;
-    height: 650px;
+    height: 600px;
 }
 
 .leftCol {
@@ -274,7 +274,7 @@ div.accountInfo
     padding-right: 10px;
 }
 
- #welcome-screen {
+ #welcome-screen, #loading {
     position:absolute;
     top:140px;
     width:920px;
@@ -288,4 +288,42 @@ div.accountInfo
     width:920px;
     height:500px;
     border:1px solid #D6E5F5;
+}
+
+#loading {
+    z-index:100;
+    background:url(../img.gif) #fff no-repeat center;
+}
+
+#loading-indicator {
+    position:relative;
+    background:url(../loader.gif) no-repeat;
+    width:100px;
+    height:100px;
+    top:390px;
+    left:810px;
+}
+
+#rearrange {
+    position:absolute;
+    top:140px;
+    width:920px;
+    height:425px;
+    border:1px solid #D6E5F5;
+    background:url(../rearrange.gif) #fff no-repeat 20px 50px;
+}
+
+.ra-title {
+    margin-left:500px;
+    margin-top:30px;
+    font-weight:bold;
+    font-size:12pt;
+}
+
+.ra-content {
+    margin-left:500px;
+    margin-top:15px;
+    font-size:10pt;
+    width:350px;
+    text-align:justify;
 }

@@ -4,13 +4,18 @@
 Vis = {
     //******************************************************************************************
     //* Loads the webgl screen and hides the welcome screen
+    //* if a daterange object is provided the calculation is based on this range
     //******************************************************************************************
-    Load : function() {
+    Load : function(daterange) {
         //get main data
+        Vis.ToggleLoading(false);
         new Ajax.Request('data.php', {
 			parameters      : {
 				'load'      : true,
-                'article'   : $F('article')
+                'article'   : $F('article'),
+                'dmax'      : $F('dmax'),
+                'sd'        : (daterange) ? daterange.sd : '',
+                'ed'        : (daterange) ? daterange.ed : ''
 			},
 			onSuccess       : function(transport) {
 				var res = transport.responseText.evalJSON();
@@ -19,7 +24,9 @@ Vis = {
                 new Ajax.Request('data.php', {
 			        parameters      : {
 				        'timeline'  : true,
-                        'article'   : $F('article')
+                        'article'   : $F('article'),
+                        'sd'        : (daterange) ? daterange.sd : '',
+                        'ed'        : (daterange) ? daterange.ed : ''
 			        },
 			        onSuccess       : function(transport) {
 				        var tlres = transport.responseText.evalJSON();
@@ -28,17 +35,35 @@ Vis = {
                         $('vis-canvas').show();
 
                         Vis.WebGL.Init(res.positions, res.skewness, tlres);
+                        Vis.ToggleLoading(true);
 			        },
 			        onFailure       : function(transport) {
+                        Vis.ToggleLoading(true);
 				        alert("Loading failed!\nPossible reason: " + transport.responseText);
 			        }
 		        });
                 
 			},
 			onFailure       : function(transport) {
+                Vis.ToggleLoading(true);
 				alert("Loading failed!\nPossible reason: " + transport.responseText);
 			}
 		});
+    },
+    //******************************************************************************************
+    //* Toggles the loading indicator
+    //******************************************************************************************
+    ToggleLoading : function(complete) {
+        var li = $('loading');
+        var btn = $('btnLoad');
+
+        if (complete) {
+            btn.enable();
+            li.hide();
+        } else {
+            btn.disable();
+            li.show();
+        }
     }
 };
 
@@ -166,25 +191,35 @@ Vis.WebGL.Canvas.Events = {
     //******************************************************************************************
     OnMouseDown : function(e) {
         this._pressed = true;
+        
+        //unselect all items except the one selected ;)
+        var lc = Vis.WebGL.Canvas.GetLocalizedPosition(e.clientX, e.clientY);
+        if (Vis.Timeline) {
+            var index = Vis.Timeline.GetItemIndexBy(lc.x);
+            Vis.Timeline.ShowRearrangeView();
+
+            Vis.Timeline.SetDaterange(!e.shiftKey, index);
+            Vis.Timeline.Draw();
+        }
     },
     //******************************************************************************************
     //* Mouse is moved
     //******************************************************************************************
     OnMouseMove : function(e) {
-        if (this._pressed) {
-            var lc = Vis.WebGL.Canvas.GetLocalizedPosition(e.clientX, e.clientY);
+//        if (this._pressed) {
+//            var lc = Vis.WebGL.Canvas.GetLocalizedPosition(e.clientX, e.clientY);
 
-            //if timeline available
-            if (Vis.Timeline) {
-                //inside timeline
-                if (lc.y < (Vis.Timeline.Height - 1)) {
-                    if (Vis.Timeline.SelectItem(Vis.Timeline.GetItemIndexBy(lc.x))) {
-                        Vis.WebGL.Scene.Draw();
-                        console.log("here");
-                    }
-                }
-            }
-        }
+//            //if timeline available
+//            if (Vis.Timeline) {
+//                //inside timeline
+//                if (lc.y < (Vis.Timeline.Height - 1)) {
+//                    if (Vis.Timeline.SelectItem(Vis.Timeline.GetItemIndexBy(lc.x))) {
+//                        Vis.Timeline.Draw();
+//                        //Vis.WebGL.Scene.Draw();
+//                    }
+//                }
+//            }
+//        }
     },
     //******************************************************************************************
     //* Mouse button has been released

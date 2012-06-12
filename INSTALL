@@ -47,7 +47,7 @@ CREATE TABLE `evgen` (
 -- --------------------------------------------------------------------------------
 DELIMITER $$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `getEdges`(art varchar(255), sid varchar(255), dmax int)
+CREATE DEFINER=`root`@`localhost` PROCEDURE `getEdges`(art varchar(255), sid varchar(255), dmax int, sd varchar(25), ed varchar(25))
 BEGIN
     DECLARE currentUser varchar(255);
     DECLARE lastUser  varchar(255);
@@ -60,6 +60,8 @@ BEGIN
     
     DECLARE cur CURSOR FOR SELECT userid, timestamp FROM wpdump.entry
     WHERE article = art
+    AND timestamp >= COALESCE(STR_TO_DATE(sd, '%Y-%m-%d'), (SELECT min(timestamp) FROM wpdump.entry WHERE article = art))
+    AND timestamp <= COALESCE(STR_TO_DATE(ed, '%Y-%m-%d'), (SELECT max(timestamp) FROM wpdump.entry WHERE article = art))
     ORDER BY timestamp;
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
@@ -112,6 +114,7 @@ BEGIN
        
     SET SQL_SAFE_UPDATES = 1;
 END
+
 
 
 - Get a Wikipedia stub file from http://dumps.wikimedia.org/

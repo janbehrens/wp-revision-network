@@ -7,6 +7,8 @@ Vis.Timeline = {
     BinColor    : '#0f0',   //color of the bins
     Width       : 2,        //timeline width (local coords)
     Height      : 0.3,      //timeline height (local coords)
+    Date1       : null,     //date for rearrangement
+    Date2       : null,     //date for rearrangement
     //******************************************************************************************
     //* @PUBLIC: Initializes the timeline
     //  @PARAM: data [object]: an array which contains the month values 
@@ -149,6 +151,20 @@ Vis.Timeline = {
         this.DrawFilledRect({ x : -1, y : -1 }, { width : w, height : h }, colors.timelineBack);
     },
     //******************************************************************************************
+    //* @PUBLIC: Shows the rearrange view
+    //******************************************************************************************
+    ShowRearrangeView : function() {
+        var view = $('rearrange');
+        view.show();
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Hides the rearrange view
+    //******************************************************************************************
+    HideRearrangeView : function() {
+        var view = $('rearrange');
+        view.hide();
+    },
+    //******************************************************************************************
     //* @PUBLIC: Gets the item index based on the provided x-coordinate (localized)
     //******************************************************************************************
     GetItemIndexBy : function(x) {
@@ -166,11 +182,132 @@ Vis.Timeline = {
         if (idx < 0 || idx > this._data.items.length)
             return false;
 
-        if (!this._data.items[idx].selected) {
-            this._data.items[idx].selected = true;
+        if (!this._data.items[idx].s) {
+            this._data.items[idx].s = true;
             return true;
         } else {
             return false;
         }
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Selects all items
+    //******************************************************************************************
+    SelectAllItems : function() {
+        for (var i = 0; i < this._data.items.length; ++i) {
+            this._data.items[i].s = true;
+        }
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Change the selection state of all items to unselected, except for the one
+    //* at the provided index
+    //******************************************************************************************
+    UnselectAllItemsBut : function(index) {
+        for (var i = 0; i < this._data.items.length; ++i) {
+            this._data.items[i].s = (i == index);
+        }
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Change the selection state of all items to unselected, except the items in the
+    //* provided date time range
+    //******************************************************************************************
+    UnselectButDaterange : function(sd, ed) {
+        for (var i = 0; i < this._data.items.length; ++i) {
+            var d = new Date(this._data.items[i].y, this._data.items[i].m, 1);
+            this._data.items[i].s = (d >= sd && d <= ed);
+        }
+        this.ToggleRearrangeButton(true);
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Sets the start/end date to the provided index value
+    //******************************************************************************************
+    SetDaterange : function(start, index) {
+        var m = this._data.items[index].m;
+        var y = this._data.items[index].y;
+        
+        var lbl = null;
+        if (start) {
+            this.Date1 = new Date(y, m, 1);
+            lbl = $('ra-first');
+        } else {
+            this.Date2 = new Date(y, m, 1);
+            lbl = $('ra-second');
+        }
+
+        if (this.Date2 == null) {
+            this.UnselectAllItemsBut(index);
+        } else {
+            if (this.Date1 == null)
+                this.Date1 = this.Date2;
+
+            if (this.Date1 < this.Date2)
+                this.UnselectButDaterange(this.Date1, this.Date2);
+            else
+                this.UnselectButDaterange(this.Date2, this.Date1);
+        }
+
+        if (lbl) {
+            lbl.innerHTML = m + "-" + y;
+        }
+    },
+    //******************************************************************************************
+    //* @PRIVATE: Toggles the rearrange button
+    //******************************************************************************************
+    ToggleRearrangeButton : function(enable) {
+        var btn = $('btnRearrange');
+        if (enable)
+            btn.enable();
+        else
+            btn.disable();
+    },
+    //******************************************************************************************
+    //* @PRIVATE: Resets the date to null
+    //******************************************************************************************
+    ResetDates : function() {
+        this.Date1 = null;
+        this.Date2 = null;
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Returns the selected date range or null if empty
+    //******************************************************************************************
+    GetSelectedRange : function() {
+        if (this.Date1 != null && this.Date2 != null) {
+            if (this.Date1 < this.Date2) {
+                return {
+                    sd : this.Date1.toJSON(),
+                    ed : this.Date2.toJSON()
+                };
+            } else {
+                return {
+                    sd : this.Date2.toJSON(),
+                    ed : this.Date1.toJSON()
+                };
+            }
+        } else 
+            return null;
+    }
+};
+
+//******************************************************************************************
+//* Mainly button events for the timeline
+//******************************************************************************************
+Vis.Timeline.Events = {
+    //******************************************************************************************
+    //* Raised when the rearrange button has been clicked
+    //******************************************************************************************
+    OnButtonRearrangeClick : function() {
+        Vis.Timeline.ToggleRearrangeButton(false);
+        Vis.Load(Vis.Timeline.GetSelectedRange());
+        Vis.Timeline.HideRearrangeView();
+        Vis.Timeline.ResetDates();
+    },
+    //******************************************************************************************
+    //* Raised when the cancel button has been clicked
+    //******************************************************************************************
+    OnButtonCancelClick : function() {
+        Vis.Timeline.ResetDates();
+        Vis.Timeline.ToggleRearrangeButton(false);
+        Vis.Timeline.SelectAllItems();
+        Vis.Timeline.HideRearrangeView();
+        Vis.Load();
     }
 };
