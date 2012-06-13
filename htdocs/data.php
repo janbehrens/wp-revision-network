@@ -142,9 +142,9 @@
 
         echo "{ \"positions\" : ";
         echo json_encode($positions);
-        echo ", \"skewness\" : " . $s;
-        echo ", \"rsdmin\" : " . $rsdmin;
-        echo ", \"rsdmax\" : " . $rsdmax . "}";
+        echo ", \"skewness\" : \"$s\"";
+        echo ", \"rsdmin\" : \"$rsdmin\";
+        echo ", \"rsdmax\" : \"$rsdmax\"}";
     }
 
     //******************************************************************************************
