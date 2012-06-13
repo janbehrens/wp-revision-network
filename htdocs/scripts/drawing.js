@@ -7,7 +7,6 @@ Vis.Drawing = {
 	scale       : null,   //scale factor
     Width       : 2,      // width (local coords)
     Height      : 2,      // height (local coords)
-    AuthorsXY   : Object(),  //storage for (local) author coordinates
     //******************************************************************************************
     //* @PUBLIC: Initializes the drawing
     //******************************************************************************************
@@ -107,26 +106,39 @@ Vis.Drawing = {
     //******************************************************************************************
     //* Draws text (using DIVs)
     //******************************************************************************************
-    DrawText : function(localpos, text) {
+    DrawText : function(localpos, offset, text, color) {
         var textdiv = document.createElement('div');
         textdiv.setAttribute('id', 'text_' + text);
         
-        var width = text.length * 7;    //could be determined from the font size as well...
-        var height = 15;
+        var width = text.length * 8;    //could be determined from the font size as well...
+        var height = 18;
         var xExtent = 1;
         var yExtent = this.Height/2;
         var left = Vis.WebGL.Canvas.Left + xExtent * Vis.WebGL.Canvas.Width/2 * (1 + localpos.x) - width/2;
-        var top = Vis.WebGL.Canvas.Top + yExtent * Vis.WebGL.Canvas.Height/2 * (1 + localpos.y) - height/2;
+        var top = Vis.WebGL.Canvas.Top + yExtent * Vis.WebGL.Canvas.Height/2 * (1 - localpos.y) - height/2;
+        //left += width * localpos.x;
+        if (offset) { left += localpos.x < 0 ? -width/2 : width/2; }
+        if (offset) { top -= localpos.y < 0 ? -height/2 : height/2; }
         
         textdiv.style.position = "absolute";
         textdiv.style.width = width + 'px';
         textdiv.style.height = height + 'px';
         textdiv.style.left = left + 'px';
         textdiv.style.top = top + 'px';
+        textdiv.style.fontSize = '120%';
+        textdiv.style.color = this.ColorToHex(color);
         
         textdiv.innerHTML = text;
         
         document.body.appendChild(textdiv);
+    },
+    ColorToHex : function(color) {
+        hex = [];
+        for (var i = 0; i < 3; i++) {
+            hex[i] = Math.floor(color[i]*255).toString(16);
+            if (hex[i].length == 1) { hex[i] = '0' + hex[i]; }
+        }
+        return '#' + hex[0] + hex[1] + hex[2];
     },
     //******************************************************************************************
     //* Clears text
@@ -172,13 +184,49 @@ Vis.Drawing = {
 		        a = Math.sqrt(0.05 * inv / (Math.PI * ratio));  //the constant defines the average size of
 		                                                        //the authors' ellipses
                 
-		        //draw ellipses - but not the invisibly small ones
-		        if (a > 1e-3) {
-                    this.DrawEllipsis({x: x, y: y}, a, ratio, 24, [0.0, 0.8, 0.4, 1.0]);
-                    this.DrawText({x: x, y: y}, this.positions[i].name);
-                    //store XY
-                    this.AuthorsXY[this.positions[i].name] = {x: x, y: y};
+                //define the color (based on steadiness of participation)
+                var brightness = Math.random();
+		        
+		        //save author information - but not the invisibly small ones
+		        if (a > 0.01) {
+                    this.positions[i].render = true;
+                    this.positions[i].xy = {x: x, y: y};
+                    this.positions[i].a = a;
+                    this.positions[i].ratio = ratio;
+                    this.positions[i].inv = inv;
+                    this.positions[i].brightness = brightness;
                 }
+            }
+		}
+        //filter out overlapping authors, keep the ones with highest involvement.
+		for (var i = 0; i < this.positions.length - 1; i++) {
+		    var cur = this.positions[i];
+		    if (cur.render && cur.render == true) {
+                for (var j = i+1; j < this.positions.length; j++) {
+                    var other = this.positions[j];
+                    if (other.render && other.render == true) {
+                        var distance = Math.sqrt(Math.pow(other.xy.x - cur.xy.x, 2) + Math.pow(other.xy.y - cur.xy.y, 2));
+                        if (distance < 0.1) {          //distance threshold goes here
+                            if (cur.inv > other.inv) {
+                                other.render = false;
+                            }
+                            else {
+                                cur.render = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+		//draw authors
+		for (var i = 0; i < this.positions.length; i++) {
+		    var cur = this.positions[i];
+		    if (cur.render && cur.render == true) {
+                this.DrawEllipsis(cur.xy, cur.a, cur.ratio, 24, [0.0, cur.brightness, cur.brightness/2, 1.0]);
+                var red = cur.brightness < 0.7 ? 0.9 : 0.45;
+                var green = cur.brightness < 0.7 ? 0.8-cur.brightness/8 : 0.4-cur.brightness/8;
+                var blue = 0;
+                this.DrawText(cur.xy, cur.a < 0.05, cur.name, [red, green, blue]);
             }
 		}
     },
@@ -186,18 +234,26 @@ Vis.Drawing = {
     //* Draws the revision edges
     //******************************************************************************************
     DrawRevisionEdges : function() {
-        for (var i=0; i<this.positions.length; i++) {
-            if (this.AuthorsXY[this.positions[i].name]) {
-                var from = this.AuthorsXY[this.positions[i].name];
-                
-                for (var target in this.positions[i].revised) {
-                    if (this.AuthorsXY[target]) {
-                        //alert(this.positions[i].name+", "+target);
-                        this.DrawEdge(
-                            from,
-                            this.AuthorsXY[target],
-                            this.positions[i].revised[target]
-                        );
+        var origin, destination, weight;
+        for (var i = 0; i < this.positions.length; i++) {
+            origin = this.positions[i];
+            if (origin.render && origin.render == true) {
+                for (var target in origin.revised) {
+                    for (var j = 0; j < this.positions.length; j++) {
+                        destination = this.positions[j];
+                        if (destination.name == target && destination.render && destination.render == true) {
+                            weight = origin.revised[target];
+                            if (destination.revised.hasOwnProperty(origin.name)) {
+                                weight -= destination.revised[origin.name];
+                            }
+                            if (weight >= 0) {
+                                this.DrawEdge(origin.xy, destination.xy, weight);
+                            }
+                            else {
+                                this.DrawEdge(destination.xy, origin.xy, weight);
+                            }
+                            break;
+                        }
                     }
                 }
             }
