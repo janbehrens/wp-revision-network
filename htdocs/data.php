@@ -23,13 +23,13 @@
     //******************************************************************************************
     function getData($article) {
         require("config.php");
-        $sid = session_id();
+        $sid = 'xy';//session_id();
 
         $Conn = mysql_connect($Server, $User, $Passwort);
         mysql_select_db($DB, $Conn);
         mysql_query("set names 'utf8';", $Conn);
 
-        //calculate weights
+        /*//calculate weights
         $sd = getDateBy('sd');
         $ed = getDateBy('ed');
         $dmax = $_POST['dmax'];
@@ -64,7 +64,7 @@
                 } else
                     break;
             }
-        }
+        }*/
 
         $positions = array();
         $s = 0;
@@ -115,9 +115,9 @@
 	            $RS_1 = mysql_query($SQL, $Conn);
 	            while ($crow_1 = mysql_fetch_row($RS_1)) {
 	                $user['rsd'] = $crow_1[0];
-	                $rsdmin = $crow_1[0] < $rsdmin ? $crow_1[0] : $rsdmin;
-	                $rsdmax = $crow_1[0] > $rsdmax ? $crow_1[0] : $rsdmax;
 	            }
+	                $rsdmin = $user['rsd'] < $rsdmin ? $user['rsd'] : $rsdmin;
+	                $rsdmax = $user['rsd'] > $rsdmax ? $user['rsd'] : $rsdmax;
 
 	            if ($user['p1'] != 0 || $user['p2'] != 0) {
 	                $positions[] = $user;
@@ -142,9 +142,9 @@
 
         echo "{ \"positions\" : ";
         echo json_encode($positions);
-        echo ", \"skewness\" : " . $s;
-        echo ", \"rsdmin\" : " . $rsdmin;
-        echo ", \"rsdmax\" : " . $rsdmax . "}";
+        echo ", \"skewness\" : \"$s\"";
+        echo ", \"rsdmin\" : \"$rsdmin\"";
+        echo ", \"rsdmax\" : \"$rsdmax\"}";
     }
 
     //******************************************************************************************
@@ -264,7 +264,7 @@
     // main function
     //******************************************************************************************
     function main() {
-        session_start();
+        //session_start();
 
         $article = $_POST['article'];
         if ($_POST['load']) {
