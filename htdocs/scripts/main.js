@@ -46,7 +46,7 @@ Vis = {
                         $('welcome-screen').hide();
                         $('vis-canvas').show();
 
-                        Vis.WebGL.Init(res.positions, res.skewness, tlres);
+                        Vis.WebGL.Init(res.positions, res.skewness, res.rsdmin, res.rsdmax, tlres);
                         Vis.ToggleLoading(true);
                         if (noData) {
                             Vis.ShowErrorScreen();
@@ -104,7 +104,7 @@ Vis.WebGL = {
     //******************************************************************************************
     //* @PUBLIC: Initializes the WebGL stuff
     //******************************************************************************************
-    Init : function(positions, s, tl) {
+    Init : function(positions, s, rsdmin, rsdmax, tl) {
         Vis.WebGL.Canvas.Init();
         if (!Vis.WebGL.CreateContext()) {
             alert("Could not initialise WebGL!");
@@ -114,7 +114,7 @@ Vis.WebGL = {
         Vis.WebGL.Shaders.Init();
         
         if (Vis.Drawing) {
-            Vis.Drawing.Init(positions, s);
+            Vis.Drawing.Init(positions, s, rsdmin, rsdmax);
         }
         if (Vis.Timeline) {
             Vis.Timeline.Init(tl);

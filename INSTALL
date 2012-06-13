@@ -12,6 +12,12 @@ CREATE TABLE `edge` (
   `sid` varchar(255) NOT NULL
 );
 
+CREATE TABLE `weeklyedits` (
+  `user` varchar(255) NOT NULL,
+  `article` varchar(255) NOT NULL,
+  `rsd` float NOT NULL COMMENT 'relative standard deviation of weekly edits'
+);
+
 CREATE TABLE `eigenvalue` (
   `article` varchar(255) NOT NULL,
   `lambda1` double NOT NULL COMMENT 'smallest eigenvalue',
@@ -50,14 +56,21 @@ DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `getEdges`(art varchar(255), sid varchar(255), dmax int, sd varchar(25), ed varchar(25))
 BEGIN
     DECLARE currentUser varchar(255);
-    DECLARE lastUser  varchar(255);
+    DECLARE lastUser varchar(255);
     DECLARE currentTimestamp datetime;
     DECLARE lastTimestamp datetime;
+    DECLARE lastWeekTimestamp datetime;
+    DECLARE weekCount int;
+    DECLARE currentSum int;
+    DECLARE currentSumSqr int;
+    DECLARE weeklyMean float;
+    DECLARE weeklyVariance float;
     DECLARE dt int;
     DECLARE w float;
     DECLARE wdt float;
     DECLARE done INT DEFAULT FALSE;
     
+    DECLARE cur1 CURSOR FOR SELECT user, sum, sumsqr FROM sigma;
     DECLARE cur CURSOR FOR SELECT userid, timestamp FROM wpdump.entry
     WHERE article = art
     AND timestamp >= COALESCE(STR_TO_DATE(sd, '%Y-%m-%d'), (SELECT min(timestamp) FROM wpdump.entry WHERE article = art))
@@ -67,10 +80,14 @@ BEGIN
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
     SET lastUser = '';
     SET w = 0;
+    SET weekCount = 0;
+    SET lastWeekTimestamp = 0;
     
     SET SQL_SAFE_UPDATES = 0;
     
-    DELETE FROM edge WHERE edge.sid = sid;
+    DELETE FROM edge WHERE edge.sid = sid AND article = art;
+    
+    CREATE TEMPORARY TABLE IF NOT EXISTS sigma (user varchar(255), edits int, sum int, sumsqr int, PRIMARY KEY (`user`));
     
     OPEN cur;
     read_loop: LOOP
@@ -82,6 +99,14 @@ BEGIN
         END IF;
         
         IF currentUser <> lastUser AND lastUser <> '' THEN
+            IF lastWeekTimestamp = 0 THEN
+                SET lastWeekTimestamp = currentTimestamp;
+            END IF;
+            SELECT count(*) INTO @w FROM sigma WHERE user = currentUser;
+            IF @w = 0 THEN
+                INSERT INTO sigma VALUES (currentUser, 0, 0, 0);
+            END IF;
+            
             SET dt = timestampdiff(second, lastTimestamp, currentTimestamp);
             IF dt < dmax THEN
                 SET wdt = 1 - (dt / dmax);
@@ -103,7 +128,18 @@ BEGIN
                     INSERT INTO edge VALUES (currentUser, lastUser, wdt, art, sid);
                 END IF;
             END IF;
+        END IF;
+        
+        UPDATE sigma SET edits = edits + 1 WHERE user = currentUser;
+        
+        IF timestampdiff(day, lastWeekTimestamp, currentTimestamp) >= 7 THEN
+            SET weekCount = weekCount + 1;
             
+            UPDATE sigma SET sum = sum + edits WHERE user = currentUser;
+            UPDATE sigma SET sumsqr = sumsqr + edits*edits WHERE user = currentUser;
+            UPDATE sigma SET edits = 0 WHERE user = currentUser;
+            
+            SET lastWeekTimestamp = currentTimestamp;
         END IF;
         
         SET lastUser = currentUser;
@@ -111,7 +147,32 @@ BEGIN
     END LOOP;
     CLOSE cur;
     
-       
+    SET done = FALSE;
+    
+    #CREATE TEMPORARY TABLE weekcount (count int);
+    #INSERT INTO weekcount VALUES (weekCount);
+    
+    OPEN cur1;
+    read_loop: LOOP
+        FETCH cur1 INTO currentUser, currentSum, currentSumSqr;
+        
+        IF done THEN
+          LEAVE read_loop;
+        END IF;
+
+        IF weekCount > 0 THEN
+            SET weeklyMean = currentSum / weekCount;
+            SET weeklyVariance = (currentSumSqr - currentSum * weeklyMean) / weekCount;
+            
+            IF weeklyMean > 0 THEN
+                INSERT INTO weeklyedits VALUES (currentUser, art, SQRT(weeklyVariance)/weeklyMean);
+            END IF;
+        END IF;
+    END LOOP;
+    CLOSE cur1;
+    
+    DROP TEMPORARY TABLE IF EXISTS sigma;
+    
     SET SQL_SAFE_UPDATES = 1;
 END
 
