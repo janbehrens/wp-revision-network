@@ -144,6 +144,8 @@
                     <button class="button" type="button"  onclick="Vis.Timeline.Events.OnButtonCancelClick()">Cancel</button>
                 </div>
             </div>
+
+            <div id="tl-status"><!-- Month: 02-2012, Number of revisions: 200 //--></div>
         </div>
         <div class="clear">
         </div>

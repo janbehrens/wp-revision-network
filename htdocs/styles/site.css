@@ -313,6 +313,14 @@ div.accountInfo
     background:url(../rearrange.gif) #fff no-repeat 20px 50px;
 }
 
+#tl-status {
+    color:#000;
+    font-size:8pt;
+    position:absolute;
+    top:550px;
+    margin-left:10px;
+}
+
 .ra-title {
     margin-left:500px;
     margin-top:30px;

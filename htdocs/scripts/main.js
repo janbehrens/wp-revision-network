@@ -206,20 +206,13 @@ Vis.WebGL.Canvas.Events = {
     //* Mouse is moved
     //******************************************************************************************
     OnMouseMove : function(e) {
-//        if (this._pressed) {
-//            var lc = Vis.WebGL.Canvas.GetLocalizedPosition(e.clientX, e.clientY);
-
-//            //if timeline available
-//            if (Vis.Timeline) {
-//                //inside timeline
-//                if (lc.y < (Vis.Timeline.Height - 1)) {
-//                    if (Vis.Timeline.SelectItem(Vis.Timeline.GetItemIndexBy(lc.x))) {
-//                        Vis.Timeline.Draw();
-//                        //Vis.WebGL.Scene.Draw();
-//                    }
-//                }
-//            }
-//        }
+        if (Vis.Timeline) {
+            if (e.clientY < 560)
+                return;
+            var lc = Vis.WebGL.Canvas.GetLocalizedPosition(e.clientX, e.clientY);
+            var index = Vis.Timeline.GetItemIndexBy(lc.x);
+            Vis.Timeline.UpdateStatusLabel(index);
+        }
     },
     //******************************************************************************************
     //* Mouse button has been released
