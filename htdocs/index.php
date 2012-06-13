@@ -26,7 +26,6 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <title>Vis2</title>
-    <script src="scripts/glMatrix-0.9.5.min.js" type="text/javascript"></script>
     <script src="scripts/prototype.js" type="text/javascript"></script>
     <script src="scripts/main.js" type="text/javascript"></script>
 	<script src="scripts/drawing.js" type="text/javascript"></script>
