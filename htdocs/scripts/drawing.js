@@ -122,6 +122,7 @@ Vis.Drawing = {
     //******************************************************************************************
     DrawText : function(localpos, xyOffset, xyExtent, placement, text, color, size) {
         var textdiv = document.createElement('div');
+        textdiv.setAttribute('class', 'dtext');
         textdiv.setAttribute('id', 'text_' + text);
         
         var width = text.length * 8;    //could be determined from the font size as well...
@@ -156,14 +157,9 @@ Vis.Drawing = {
     //* Clears text
     //******************************************************************************************
     ClearText : function() {
-        var divs = document.getElementsByTagName("div");
-        for (var n = 0; n < 10; n++) {      //strange, but works better
-            for (var i = 0; i < divs.length; i++) {
-                if (divs[i].id.indexOf('text_') == 0) {
-                    document.body.removeChild(divs[i]);
-                }
-            }
-        }
+        $$('div.dtext').each(function(item) {
+            item.remove();
+        });
     },
     //******************************************************************************************
     //* Draws the main ellipsis
