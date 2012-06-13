@@ -23,13 +23,13 @@
     //******************************************************************************************
     function getData($article) {
         require("config.php");
-        $sid = 'xy';//session_id();
+        $sid = session_id();
 
         $Conn = mysql_connect($Server, $User, $Passwort);
         mysql_select_db($DB, $Conn);
         mysql_query("set names 'utf8';", $Conn);
 
-        /*//calculate weights
+        //calculate weights
         $sd = getDateBy('sd');
         $ed = getDateBy('ed');
         $dmax = $_POST['dmax'];
@@ -64,7 +64,7 @@
                 } else
                     break;
             }
-        }*/
+        }
 
         $positions = array();
         $s = 0;
@@ -264,7 +264,7 @@
     // main function
     //******************************************************************************************
     function main() {
-        //session_start();
+        session_start();
 
         $article = $_POST['article'];
         if ($_POST['load']) {
