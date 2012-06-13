@@ -68,6 +68,8 @@
 
         $positions = array();
         $s = 0;
+        $rsdmin = PHP_INT_MAX;
+        $rsdmax = 0;
 
         //check if edges are available
         $SQL = "SELECT count(*) FROM edge WHERE article='$article' and sid = '$sid'";
@@ -79,8 +81,6 @@
 	        $RS = mysql_query($SQL, $Conn);
 	        $crow = mysql_fetch_row($RS);
 	        $s = ($crow[0] == 0) ? 0 : $crow[1]/$crow[0];
-	        $rsdmin = PHP_INT_MAX;
-	        $rsdmax = 0;
 
 	        //get author's positions and extra data
 	        $SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article' and sid = '$sid'";
@@ -211,12 +211,13 @@
             $m = $current->format("m");
             $y = $current->format("Y");
             $key = $y . "_" . $m;
-            $v = $dates[$key];
-            if (!$v) {
-                $v = 0;
-            } else {
-                if ($v > $max)
-                    $max = $v;
+            $v = 0;
+            if (array_key_exists($key, $dates)) {
+                $v = $dates[$key];
+            }
+            
+            if ($v > $max) {
+                $max = $v;
             }
             
             $sel = "true";
@@ -267,9 +268,9 @@
         session_start();
 
         $article = $_POST['article'];
-        if ($_POST['load']) {
+        if (isset($_POST['load'])) {
             getData($article);
-        } else if ($_POST['timeline']) {
+        } else if (isset($_POST['timeline'])) {
             getTimelineData($article);
         }
     }
