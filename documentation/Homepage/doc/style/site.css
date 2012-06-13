@@ -279,3 +279,14 @@ code {
     padding:2px 5px;
     background:#eee;
 }
+
+.small {
+    border-top:1px solid #ccc;
+    font-size:8pt;
+    color:#888;
+}
+
+.small a {
+    text-decoration:none;
+    color:#888;
+}
