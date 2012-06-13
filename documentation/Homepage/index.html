@@ -55,10 +55,11 @@
 
                 <h3>MySQL</h3>
                 <div>
-                    Once you have installed MySQL execute the following commands:
-                    <div class="code">
-                        <iframe src="doc/mysql.html" style="width:900px; height:1450px;" frameborder="0" scrolling="no"></iframe>
-                    </div>
+                    <p>Once you have installed MySQL create a UTF-8 database 'wpdump' and
+                    execute the following commands:</p>
+                    <code>
+                        mysql wpdump &lt; <a href="install.sql">install.sql</a>
+                    </code>
                 </div>
 
                 <h3>Perl</h3>
@@ -74,13 +75,15 @@
                         <li>Text::CSV</li>
                         <li>XML::Parser::PerlSAX</li>
                     </ul>
-                    By default DBI and Time::Local should be already available.<br />
-                    For the Text::CSV just execute <code>cpan Text::CSV</code> and <code>cpan XML::Parser::PerlSAX </code> for the PerlSAX module
+                    <p>On Windows DBI and Time::Local should be available by default.<br />
+                    For the Text::CSV just execute <code>cpan Text::CSV</code> and <code>cpan XML::Parser::PerlSAX </code> for the PerlSAX module.</p>
+                    <p>On Debian you can execute:</p>
+                    <code>apt-get install libdbi-perl libxml-perl libtext-csv-perl</code>
                 </div>
 
                 <h3>PHP</h3>
                 <div>
-                    If you have a Linux environment Apache should be installed and therefore PHP should work out of the box.<br />
+                    If you have a Linux environment install Apache, PHP5 and the PHP/Mysql module using your packet manager.<br />
                     On Windows you have to install the Internet Information Services (IIS) and install PHP. If you are using IIS7 (default in Windows 7)
                     click <a href="http://php.iis.net/" target="_blank">here</a> for an installation guide. For older versions you can use 
                     <a href="http://www.iisadmin.co.uk/?p=4" target="_blank">this</a> solution.<br />
@@ -97,6 +100,15 @@
                     The file can be found in your MySql installation lib folder.<br />
                     <br />
                     After compilation copy the executable to the <code>/htdocs/evgen-bin/</code> folder.
+                    <p>If you use Eclipse on Linux to compile evgen, make sure you have the includes
+                    <code>/usr/include/mysql</code>
+                    and the libraries:
+                    <code>mysqlclient
+                    pthread
+                    z
+                    m
+                    rt
+                    dl</code></p>
                 </div>
             </div>
 
@@ -139,8 +151,8 @@
                 <img src="doc/sMain.jpg" alt="Main screen" class="screenshot" />
                 <div>
                     As you can see in the screenshot, many conflicts occurred on this article. Ellipses which have positions opposite of each other
-                    indicate that those persons are in conflict. If they are connected by a line it indicates who revises whom. The bigger the line is
-                    the greater the conflict between the two authors is. Another indicator is the form of the ellipses. If it is very flat the author
+                    indicate that those persons are in conflict. If they are connected by a line it indicates who revises whom. The bigger the line,
+                    the greater the conflict is between the two authors. Another indicator is the form of the ellipses. If it is very flat the author
                     is beeing revised most of the time. If it "stands" the author revises other persons more often. The color of the author indicates
                     how fast he/she responds to revisions.
                     <br />
@@ -165,10 +177,10 @@
                 First of all the parser extracts necessary content and saves it into the database (username and revision date).
                 In the next step the weights between different authors are calculated based on the provided <i>max response</i> time.
                 This is done in the <i>MySql-Routine "getEdges()"</i>.
-                Therefore the time difference between to sequent revisions is taken. If this difference is smaller than the <i>max response</i> time
+                Therefore the time difference between two subsequent revisions is taken. If this difference is smaller than the <i>max response</i> time
                 the result is normalized and saved as weight. If this happens more than once to the same authors the weights are summed up.<br />
                 <br />
-                Now the adjacency matrix is beeing generated. This is done in the EvGen-tool and can look like this:<br />
+                Now the adjacency matrix is being generated. This is done in the EvGen-tool and can look like this:<br />
                 <img src="doc/sAdja.jpg" alt="Adjacency matrix" class="screenshot" />
                 <div>
                     After the matrix has been created the eigenvalues are calculated. The smallest eigenvalue and its corresponding eigenvector
