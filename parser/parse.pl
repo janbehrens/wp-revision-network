@@ -16,8 +16,6 @@ my $csv = Text::CSV->new({allow_whitespace => 1});  #the pages to be analysed
 $csv->parse(shift(@ARGV));
 my @pages = $csv->fields() or die;
 
-my $dtmax = shift(@ARGV);  #maximum timestamp difference in seconds
-
 my $user;
 my $timestamp;
 my $previoususer;
@@ -84,8 +82,6 @@ sub characters {
 
             @pages = grep $_ ne $title, @pages;
             push(@pagesread, $title);
-            
-            $dbh->do("DELETE FROM edge WHERE article='$title';");
         }
     }
     elsif ($tag eq 's') {
