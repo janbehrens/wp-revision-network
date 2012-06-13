@@ -4,6 +4,8 @@
 Vis.Drawing = {
     positions   : null,   //array of authors and their positions
 	s           : null,   //the network's skewness
+	rsdmin      : null,
+	rsdmax      : null,
 	scale       : null,   //scale factor
     Width       : 2,      // width (local coords)
     Height      : 2,      // height (local coords)
@@ -11,9 +13,11 @@ Vis.Drawing = {
     //******************************************************************************************
     //* @PUBLIC: Initializes the drawing
     //******************************************************************************************
-    Init : function(positions, s) {
+    Init : function(positions, s, rsdmin, rsdmax) {
         this.positions = positions;
         this.s = s;
+        this.rsdmin = rsdmin;
+        this.rsdmax = rsdmax;
         this.scale = 0.8;  //scaling factor - does it need more magic to make the drawing always fit in the screen?
         if (Vis.Timeline) {
             this.Height = 2 - Vis.Timeline.Height;
@@ -195,7 +199,8 @@ Vis.Drawing = {
 		                                                        //the authors' ellipses
                 
                 //define the color (based on steadiness of participation)
-                var brightness = Math.random();
+                var rsd = this.positions[i].rsd;
+                var brightness = (rsd - this.rsdmin) / (this.rsdmax - this.rsdmin + 0.001);
 		        
 		        //save author information - but not the invisibly small ones
 		        if (a > 0.01) {
