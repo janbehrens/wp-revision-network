@@ -7,6 +7,13 @@ Vis = {
     //* if a daterange object is provided the calculation is based on this range
     //******************************************************************************************
     Load : function(daterange) {
+        if ($F('article') == "") {
+            alert("Please choose an article first!");
+            return;
+        }
+
+        var noData = false;
+
         //get main data
         Vis.ToggleLoading(false);
         new Ajax.Request('data.php', {
@@ -19,6 +26,11 @@ Vis = {
 			},
 			onSuccess       : function(transport) {
 				var res = transport.responseText.evalJSON();
+                if (res.positions) {
+                    if (res.positions.length == 0) {
+                        noData = true;
+                    }
+                }
 
                 //get timeline data
                 new Ajax.Request('data.php', {
@@ -36,6 +48,9 @@ Vis = {
 
                         Vis.WebGL.Init(res.positions, res.skewness, tlres);
                         Vis.ToggleLoading(true);
+                        if (noData) {
+                            Vis.ShowErrorScreen();
+                        }
 			        },
 			        onFailure       : function(transport) {
                         Vis.ToggleLoading(true);
@@ -54,6 +69,7 @@ Vis = {
     //* Toggles the loading indicator
     //******************************************************************************************
     ToggleLoading : function(complete) {
+        Vis.HideErrorScreen();
         var li = $('loading');
         var btn = $('btnLoad');
 
@@ -64,6 +80,18 @@ Vis = {
             btn.disable();
             li.show();
         }
+    },
+    //******************************************************************************************
+    //* Shows the error screen
+    //******************************************************************************************
+    ShowErrorScreen : function() {
+        $('error-screen').show();
+    },
+    //******************************************************************************************
+    //* Hides the error screen
+    //******************************************************************************************
+    HideErrorScreen : function() {
+        $('error-screen').hide();
     }
 };
 
@@ -186,12 +214,17 @@ Vis.WebGL.Canvas = {
 //******************************************************************************************
 Vis.WebGL.Canvas.Events = {
     _pressed    : false,
+    _minY       : 560,      //minimum y which has to be reached
     //******************************************************************************************
     //* Mouse button has been pressed
     //******************************************************************************************
     OnMouseDown : function(e) {
+        if (e.clientY < Vis.WebGL.Canvas.Events._minY)
+            return;
+
         this._pressed = true;
-        
+        Vis.HideErrorScreen();
+
         //unselect all items except the one selected ;)
         var lc = Vis.WebGL.Canvas.GetLocalizedPosition(e.clientX, e.clientY);
         if (Vis.Timeline) {
@@ -206,25 +239,21 @@ Vis.WebGL.Canvas.Events = {
     //* Mouse is moved
     //******************************************************************************************
     OnMouseMove : function(e) {
-//        if (this._pressed) {
-//            var lc = Vis.WebGL.Canvas.GetLocalizedPosition(e.clientX, e.clientY);
+        if (e.clientY < Vis.WebGL.Canvas.Events._minY)
+            return;
 
-//            //if timeline available
-//            if (Vis.Timeline) {
-//                //inside timeline
-//                if (lc.y < (Vis.Timeline.Height - 1)) {
-//                    if (Vis.Timeline.SelectItem(Vis.Timeline.GetItemIndexBy(lc.x))) {
-//                        Vis.Timeline.Draw();
-//                        //Vis.WebGL.Scene.Draw();
-//                    }
-//                }
-//            }
-//        }
+        if (Vis.Timeline) {
+            var lc = Vis.WebGL.Canvas.GetLocalizedPosition(e.clientX, e.clientY);
+            var index = Vis.Timeline.GetItemIndexBy(lc.x);
+            Vis.Timeline.UpdateStatusLabel(index);
+        }
     },
     //******************************************************************************************
     //* Mouse button has been released
     //******************************************************************************************
     OnMouseUp : function(e) {
+        if (e.clientY < Vis.WebGL.Canvas.Events._minY)
+            return;
         this._pressed = false;
     },
     //******************************************************************************************

@@ -154,7 +154,9 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	
-	//mat->DebugTable("test.html");
+	if (debugOutput) {
+		mat->DebugTable("test.html");
+	}
 
 	mysql_close(connection);
 	delete(mat);

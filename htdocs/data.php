@@ -65,43 +65,50 @@
             }
         }
 
-        //get eigenvalue and calculate skewness
-	    $SQL = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article='$article' and sid = '$sid'";
+        $positions = array();
+        $s = 0;
+
+        //check if edges are available
+        $SQL = "SELECT count(*) FROM edge WHERE article='$article' and sid = '$sid'";
 	    $RS = mysql_query($SQL, $Conn);
 	    $crow = mysql_fetch_row($RS);
-	    $s = ($crow[0] == 0) ? 0 : $crow[1]/$crow[0];
+        if ($crow[0] > 0) {
+            //get eigenvalue and calculate skewness
+	        $SQL = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article='$article' and sid = '$sid'";
+	        $RS = mysql_query($SQL, $Conn);
+	        $crow = mysql_fetch_row($RS);
+	        $s = ($crow[0] == 0) ? 0 : $crow[1]/$crow[0];
 
-	    //get author's positions
-	    $positions = array();
-	    $SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article' and sid = '$sid'";
-	    $RS = mysql_query($SQL, $Conn);
-	    while ($crow = mysql_fetch_row($RS)) {
-	        $user = array();
-	        $user['name'] = $crow[0];
-	        $user['p1'] = (float) $crow[1];
-	        $user['p2'] = $s * $crow[2];
+	        //get author's positions
+	        $SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article' and sid = '$sid'";
+	        $RS = mysql_query($SQL, $Conn);
+	        while ($crow = mysql_fetch_row($RS)) {
+	            $user = array();
+	            $user['name'] = $crow[0];
+	            $user['p1'] = (float) $crow[1];
+	            $user['p2'] = $s * $crow[2];
 	        
-	        //get out-degree and in-degree of author's revisions and edge data
-	        $user['out'] = 0;
-	        $user['in'] = 0;
-	        $user['revised'] = array();
+	            //get out-degree and in-degree of author's revisions and edge data
+	            $user['out'] = 0;
+	            $user['in'] = 0;
+	            $user['revised'] = array();
 	        
-	        $SQL = "SELECT weight, touser FROM edge WHERE fromuser='$crow[0]' and sid = '$sid'";
-	        $RS_1 = mysql_query($SQL, $Conn);
-	        while ($crow_1 = mysql_fetch_row($RS_1)) {
-	            $user['out'] += $crow_1[0];
-	            $user['revised'][$crow_1[1]] = (float) $crow_1[0];
-	        }
+	            $SQL = "SELECT weight, touser FROM edge WHERE fromuser='$crow[0]' and sid = '$sid'";
+	            $RS_1 = mysql_query($SQL, $Conn);
+	            while ($crow_1 = mysql_fetch_row($RS_1)) {
+	                $user['out'] += $crow_1[0];
+	                $user['revised'][$crow_1[1]] = (float) $crow_1[0];
+	            }
 
-	        $SQL = "SELECT weight FROM edge WHERE touser='$crow[0]' and sid = '$sid'";
-	        $RS_1 = mysql_query($SQL, $Conn);
-	        while ($crow_1 = mysql_fetch_row($RS_1)) { $user['in'] += $crow_1[0]; }
+	            $SQL = "SELECT weight FROM edge WHERE touser='$crow[0]' and sid = '$sid'";
+	            $RS_1 = mysql_query($SQL, $Conn);
+	            while ($crow_1 = mysql_fetch_row($RS_1)) { $user['in'] += $crow_1[0]; }
 
-	        if ($user['p1'] != 0 || $user['p2'] != 0) {
-	            $positions[] = $user;
+	            if ($user['p1'] != 0 || $user['p2'] != 0) {
+	                $positions[] = $user;
+	            }
 	        }
 	    }
-	    
 	    /* { "positions" : [
 	            { "name": "61.224.89.221",
 	              "p1": 1,
