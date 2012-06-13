@@ -150,7 +150,7 @@
             <div id="error-screen" style="display:none">
                 <div class="error-hl">Sorry</div>
                 <div class="error-content">
-                    No data can displayed for the selected date range. It seems there were no conflicts at all ;)<br>
+                    No data can be displayed for the selected date range. It seems there were no conflicts at all ;)<br>
                     <br>
                     Choose another date range and try it again.
                 </div>
