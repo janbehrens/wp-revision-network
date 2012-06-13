@@ -18,7 +18,7 @@ Vis.Drawing = {
         if (Vis.Timeline) {
             this.Height = 2 - Vis.Timeline.Height;
         }
-        this.Width -= this.LegendWidth;
+        this.Width = 2 - this.LegendWidth;
     },
     //******************************************************************************************
     //* Draws an ellipsis
