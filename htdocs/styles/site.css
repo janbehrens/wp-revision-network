@@ -313,6 +313,42 @@ div.accountInfo
     background:url(../rearrange.gif) #fff no-repeat 20px 50px;
 }
 
+#tl-status {
+    color:#000;
+    font-size:8pt;
+    position:absolute;
+    top:550px;
+    margin-left:10px;
+}
+
+#error-screen {
+    position:absolute;
+    top:140px;
+    width:920px;
+    height:425px;
+    border:1px solid #D6E5F5;
+    background:url(../rearrange.gif) #fff no-repeat 20px 50px;
+}
+
+.error-hl {
+    position:relative;
+    color:#d00;
+    font-weight:bold;
+    font-size:15pt;
+    top:100px;
+    left:500px;
+    border-bottom:1px solid #d00;
+    width:350px;
+}
+
+.error-content {
+    position:relative;
+    top:110px;
+    left:500px;
+    width:350px;
+    text-align:justify;
+}
+
 .ra-title {
     margin-left:500px;
     margin-top:30px;

@@ -156,6 +156,9 @@ Vis.Timeline = {
     ShowRearrangeView : function() {
         var view = $('rearrange');
         view.show();
+        if (Vis.Drawing) {
+            Vis.Drawing.ClearText();
+        }
     },
     //******************************************************************************************
     //* @PUBLIC: Hides the rearrange view
@@ -284,6 +287,15 @@ Vis.Timeline = {
             }
         } else 
             return null;
+    },
+    //******************************************************************************************
+    //* @PUBLIC: Updates the text in the status label
+    //******************************************************************************************
+    UpdateStatusLabel : function(index) {
+        var lbl = $('tl-status');
+        var my = this._data.items[index].m + "-" + this._data.items[index].y;
+        var am = this._data.items[index].a;
+        lbl.innerHTML = "Month: " + my + ", Number of revisions: " + am;
     }
 };
 

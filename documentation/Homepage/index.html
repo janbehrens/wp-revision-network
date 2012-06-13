@@ -26,9 +26,20 @@
                 and has been implemented for the course<br />
                 <i>Visualisierung 2</i> at the TU Vienna<br />
                 The complete source code can be downloaded at <a href="https://github.com/antofosm/wp-revision-network" target="_blank">GitHub</a>.<br /><br />
-                The complete program is platform independent, we have tested it with Linux and Windows 7
+                The complete program is platform independent, we have tested it with Linux and Windows 7.<br />
+                <br />
+                This document is split into following sections:
+                <ol>
+                    <li><a href="index.html#Install">How to install</a></li>
+                    <li><a href="index.html#Parser">How to use the parser</a></li>
+                    <li><a href="index.html#Program">How to use the main program</a></li>
+                    <li><a href="index.html#HowWork">How does the program work</a></li>
+                    <li><a href="index.html#WhyTools"> Why so many different tools</a></li>
+                    <li><a href="index.html#CodeLoc">Code locations</a></li>
+                </ol>
             </div>
         
+            <a name="Install"></a>
             <div class="hl">1. How to install</div>
             <div class="content">
 
@@ -36,7 +47,7 @@
                 <div>
                     <ul>
                         <li>WebGL enabled Browser - we have tested it with Mozilla Firefox</li>
-                        <li>Perl interpretor (on Windows: Strawberry Perl)</li>
+                        <li>Perl interpreter (on Windows: Strawberry Perl)</li>
                         <li>MySQL</li>
                         <li>Web Server (IIS with PHP or Apache)</li>
                     </ul>
@@ -45,128 +56,186 @@
                 <h3>MySQL</h3>
                 <div>
                     Once you have installed MySQL execute the following commands:
-                    <div class="collapsible">
-                        <pre>
-    CREATE TABLE `edge` (
-        `fromuser` varchar(255) NOT NULL,
-        `touser` varchar(255) NOT NULL,
-        `weight` float NOT NULL,
-        `article` varchar(255) NOT NULL,
-        `sid` varchar(255) NOT NULL
-    );
-
-    CREATE TABLE `eigenvalue` (
-        `article` varchar(255) NOT NULL,
-        `lambda1` double NOT NULL COMMENT 'smallest eigenvalue',
-        `lambda2` double NOT NULL COMMENT 'second smallest eigenvalue',
-        `sid` varchar(255) NOT NULL,
-        PRIMARY KEY (`article`,`sid`)
-    );
-
-    CREATE TABLE `eigenvector` (
-        `user` varchar(255) NOT NULL,
-        `article` varchar(255) NOT NULL,
-        `v1` double NOT NULL COMMENT 'vectorelement to the smallest eigenvalue',
-        `v2` double NOT NULL COMMENT 'vectorelement to the 2nd smallest eigenvalue',
-        `sid` varchar(255) NOT NULL,
-        PRIMARY KEY (`user`,`article`,`sid`)
-    );
-
-    CREATE TABLE `entry` (
-        `userid` varchar(255) NOT NULL,
-        `timestamp` datetime NOT NULL,
-        `article` varchar(255) NOT NULL
-    );
-
-    CREATE TABLE `evgen` (
-        `sid` varchar(255) NOT NULL,
-        `finished` bit(1) NOT NULL,
-        PRIMARY KEY (`sid`)
-    );
-
-    -- --------------------------------------------------------------------------------
-    -- Routine DDL
-    -- Note: comments before and after the routine body will not be stored by the server
-    -- --------------------------------------------------------------------------------
-    DELIMITER $$
-
-    CREATE DEFINER=`root`@`localhost` PROCEDURE `getEdges`(art varchar(255), sid varchar(255), dmax int, sd varchar(25), ed varchar(25))
-    BEGIN
-        DECLARE currentUser varchar(255);
-        DECLARE lastUser  varchar(255);
-        DECLARE currentTimestamp datetime;
-        DECLARE lastTimestamp datetime;
-        DECLARE dt int;
-        DECLARE w float;
-        DECLARE wdt float;
-        DECLARE done INT DEFAULT FALSE;
-    
-        DECLARE cur CURSOR FOR SELECT userid, timestamp FROM wpdump.entry
-        WHERE article = art
-        AND timestamp >= COALESCE(STR_TO_DATE(sd, '%Y-%m-%d'), (SELECT min(timestamp) FROM wpdump.entry WHERE article = art))
-        AND timestamp <= COALESCE(STR_TO_DATE(ed, '%Y-%m-%d'), (SELECT max(timestamp) FROM wpdump.entry WHERE article = art))
-        ORDER BY timestamp;
-    
-        DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-        SET lastUser = '';
-        SET w = 0;
-    
-        SET SQL_SAFE_UPDATES = 0;
-    
-        DELETE FROM edge WHERE edge.sid = sid;
-    
-        OPEN cur;
-        read_loop: LOOP
-            #SET done = FALSE;
-            FETCH cur INTO currentUser, currentTimestamp;
-        
-            IF done THEN
-                LEAVE read_loop;
-            END IF;
-        
-            IF currentUser <> lastUser AND lastUser <> '' THEN
-                SET dt = timestampdiff(second, lastTimestamp, currentTimestamp);
-                IF dt < dmax THEN
-                    SET wdt = 1 - (dt / dmax);
-                ELSE
-                    SET wdt = 0;
-                END IF;
-            
-                SELECT count(*) INTO @w FROM edge WHERE fromuser = currentUser AND touser = lastUser
-                AND article = art AND edge.sid = sid;
-                IF @w > 0 THEN
-                    #SELECT weight INTO @w FROM tmp WHERE fromuser = currentUser AND touser = lastUser;
-                    #UPDATE tmp SET weight = (@w + wdt) WHERE fromuser = currentUser AND touser = lastUser;
-                    UPDATE edge
-                    SET weight = (weight + wdt)
-                    WHERE fromuser = currentUser AND touser = lastUser
-                    AND article = art AND edge.sid = sid;
-                ELSE
-                    IF wdt <> 0 THEN
-                        INSERT INTO edge VALUES (currentUser, lastUser, wdt, art, sid);
-                    END IF;
-                END IF;
-            
-            END IF;
-        
-            SET lastUser = currentUser;
-            SET lastTimestamp = currentTimestamp;
-        END LOOP;
-        CLOSE cur;
-    
-       
-        SET SQL_SAFE_UPDATES = 1;
-    END
-                        </pre>
+                    <div class="code">
+                        <iframe src="doc/mysql.html" style="width:900px; height:1450px;" frameborder="0" scrolling="no"></iframe>
                     </div>
+                </div>
+
+                <h3>Perl</h3>
+                <div>
+                    If you are using Windows you have to install an additional Perl interpreter. A good one is 
+                    <a href="http://strawberryperl.com/" target="_blank">Strawberry Perl</a>. Be careful with the 64-bit version as it might not recognize
+                    additional modules.<br />
+                    <br />
+                    The parser needs the following modules:
+                    <ul>
+                        <li>DBI</li>
+                        <li>Time::Local</li>
+                        <li>Text::CSV</li>
+                        <li>XML::Parser::PerlSAX</li>
+                    </ul>
+                    By default DBI and Time::Local should be already available.<br />
+                    For the Text::CSV just execute <code>cpan Text::CSV</code> and <code>cpan XML::Parser::PerlSAX </code> for the PerlSAX module
+                </div>
+
+                <h3>PHP</h3>
+                <div>
+                    If you have a Linux environment Apache should be installed and therefore PHP should work out of the box.<br />
+                    On Windows you have to install the Internet Information Services (IIS) and install PHP. If you are using IIS7 (default in Windows 7)
+                    click <a href="http://php.iis.net/" target="_blank">here</a> for an installation guide. For older versions you can use 
+                    <a href="http://www.iisadmin.co.uk/?p=4" target="_blank">this</a> solution.<br />
+                    <br />
+                    After PHP has been installed successfully use the config.php in the htdocs folder and enter the MySQL credentials there.<br />
+                </div>
+
+                <h3>EvGen - Tool</h3>
+                <div>
+                    This tool is used to calculate the eigenvalues/-vectors on the fly. It is a C++ program and has to be compiled before you use it.
+                    For Windows users a VS2010 solution file is provided in the source folder. For Linux users just use a GCC compiler.
+                    Before you compile the program make sure to enter the correct database credentials in the evgen.cpp file in the main function.<br />
+                    If you are using Windows make sure to add the folder where the file: <i>libmysql.dll</i> is located to your Windows Path variable (global). 
+                    The file can be found in your MySql installation lib folder.<br />
+                    <br />
+                    After compilation copy the executable to the following folder:
+                    <ul>
+                        <li>Windows: /htdocs/evgen-bin/ (make sure PHP-User has execute permission)</li>
+                        <li>Linux: /evgen-bin/</li>
+                    </ul>
                 </div>
             </div>
 
+            <a name="Parser"></a>
             <div class="hl">2. How to use the parser</div>
-            <div class="content">bla bla bla</div>
+            <div class="content">
+                The parser will extract data out of a wikipedia-metabase-file. These files can be found 
+                <a href="http://dumps.wikimedia.org/backup-index.html" target="_blank">here</a>.<br />
+                Pick a wiki dump (e.g. <a href="http://dumps.wikimedia.org/dewiki/20120603/" target="_blank">dewiki for 01-06-2012</a>) and
+                now look for <code>stub-meta-history.xml</code> files (these files contain no page text, only revision metadata.).<br />
+                Be careful because these file can be very big (about 30GB).<br />
+                <br />
+                Once you have downloaded and extracted a file you can use the parser.<br />
+                <br />
+                Run <code>perl parse.pl CONNECTION ARTICLES DUMPFILE</code><br />
+                <ul>
+                    <li>CONNECTION : database credentials in the form "dbname,dbhost,dbuser,dbpass"</li>
+                    <li>ARTICLES : page titles whose history you want to analyze as comma-separated list, e.g. "Alan Smithee, Ang Lee, Aussagenlogik" (use those double quotes!)</li>
+                    <li>DUMPFILE : path to the Wikipedia dump file</li>
+                </ul>
+            </div>
 
-            <div class="hl">3. How to use the program</div>
-            <div class="content">bla bla bla</div>
+            <a name="Program"></a>
+            <div class="hl">3. How to use the main program</div>
+            <div class="content">
+                When you navigate to the start page you will see this screen:<br />
+                <img src="doc/sStart.jpg" alt="Start screen" class="screenshot" />
+                <div>
+                    In the <i>Article</i> dropdown choose the article to be analyzed. The time you select in the <i>max response</i> dropdown will
+                    be used on data generation to check which authors are revising each other.<br />
+                    <br />
+                    For example: you choose 10 minutes (default). An author posts a message at 10:30 and another author posts a message 5 minutes later.
+                    Those two persons will be marked as possible conflicts because the posted in the specified time range.
+                    If the first author posts 8 minutes later, than it is very likely that a conflict occurred -> this will be marked in the view.<br />
+                    <br />
+                    After clicking the <i>Load</i> button the data is being generated.<br />
+                    <br />
+                    Now the screen should like like this:<br />
+                </div>
+                <img src="doc/sMain.jpg" alt="Main screen" class="screenshot" />
+                <div>
+                    As you can see in the screenshot, many conflicts occurred on this article. TODO: describe what you can see here, what the lines/circles/ect.
+                    mean.
+                    <br />
+                    <br />
+                    The timeline at the bottom shows the number of edits per month. When you move over the timeline you can see the current month and the
+                    number of revisions in the status label right on top of the timeline.<br />
+                    If you click on a month in the timeline another screen comes up. Using this screen you can rearrange the conflict display. By clicking
+                    on a month in the timeline you specify the start date. Hold the <i>[SHIFT]</i> key and click on another month in the timeline, this will
+                    set the second date. The range you selected should be marked blue, everything else gray. Now click on the <i>Rearrange</i> button to
+                    draw the conflict pattern in the selected time range or click the cancel button to use the complete range.
+                </div>
+                <img src="doc/sTimeline.jpg" alt="Timeline" class="screenshot" />
+            </div>
+
+            <a name="HowWork"></a>
+            <div class="hl">4. How does the program work</div>
+            <div class="content">
+                First of all the parser extracts necessary content and saves it into the database (username and revision date).
+                In the next step the weights between different authors are calculated based on the provided <i>max response</i> time.
+                This is done in the <i>MySql-Routine "getEdges()"</i>.
+                Therefore the time difference between to sequent revisions is taken. If this difference is smaller than the <i>max response</i> time
+                the result is normalized and saved as weight. If this happens more than once to the same authors the weights are summed up.<br />
+                <br />
+                Now the adjacency matrix is being generated. This is done in the EvGen-tool and can look like this:<br />
+                <img src="doc/sAdja.jpg" alt="Adjacency matrix" class="screenshot" />
+                <div>
+                    After the matrix has been created the eigenvalues are calculated. The smallest eigenvalue and its corresponding eigenvector
+                    is used to get the <i>x-Location</i> of an author. The second smallest eigenvalue and its corresponding eigenvector is 
+                    multiplied with the difference between the two smallest eigenvalues and generates the <i>y-Location</i>.<br />
+                    <br />
+                    For a better look the x/y values are rearranged to fit on an ellipse.
+                </div>
+            </div>
+
+            <a name="WhyTools"></a>
+            <div class="hl">5. Why so many different tools</div>
+            <div class="content">
+                Because we worked on different operating system, and web applications are always limited to the platforms they are hosted on
+                we used different tools to solve the different problems.<br />
+                <br />
+                <h3>The parser</h3>
+                <div>
+                    First we needed to extract the necessary data out of the big xml dump files. Because it takes some time to parse a 30GB file
+                    we wrote a tool which uses a SAX parser to extract only the usernames and the revision date.
+                </div>
+
+                <h3>The EvGen tool</h3>
+                <div>
+                    Another problem was to calculate eigenvalues efficiently. The method described in the paper used symmetric adjacency matrices
+                    and calculated the positions of the authors by solving an eigenvalue problem. The challenge was to do this quick for very big 
+                    matrices (up to 1000x1000).<br />
+                    Therefore we tried different libraries.<br />
+                    <br />
+                    The first one was written in JavaScript but it gave up on matrices larger than 20 columns.<br />
+                    <br />
+                    The second one was the <a href="http://www.netlib.org/lapack/" target="LAPACK">LAPACK</a> library which is written in Fortran 
+                    and is available in PHP (but only on Linux systems - it is very difficult to get it running on a Windows machine - to difficult for this lecture). 
+                    Another problem with this library was that it did not return the complete eigenvectors.<br />
+                    <br />
+                    The next library was <a href="http://www.alglib.net/" target="_blank">ALGLIB</a>. 
+                    It served our needs but it was only available for external tools like C#, C++, VBA, Delphi or Python.
+                    So we chose C++ because this language runs everywhere ;).<br />
+                    <br />
+                    In the beginning this tool did everything as expected. When we were almost finished with the drawing of the author positions we observed
+                    weird behavior. We figured out, that this library produced huge rounding errors on larger matrices (up to 200x200).<br />
+                    <br />
+                    So we had to choose another library and found the 
+                    <a href="http://eigen.tuxfamily.org/index.php?title=Main_Page" target="_blank">EIGEN template library</a> finally.<br />
+                </div>
+
+                <h3>PHP and MySql</h3>
+                <div>
+                    For our implementation we chose WebGL. Because this is a JavaScript based language and it runs in the browser we needed
+                    a server side scripting language (for platform independence we chose PHP). Also we had to store and handle huge amounts of data, so
+                    we a database system was necessary as well (again a platform independent system: MySql).
+                </div>
+            </div>
+
+            <a name="CodeLoc"></a>
+            <div class="hl">6. Code locations</div>
+            <div class="content">
+                Tools and programs:
+                <ul>
+                    <li>Parser: /parser/</li>
+                    <li>EvGen: /evgen/</li>
+                    <li>PHP files: /htdocs/</li>
+                    <li>WebGL files: /htdocs/scripts/</li>
+                </ul>
+                Additional 3rd party libraries:
+                <ul>
+                    <li>PrototypeJS: /htdocs/scripts/ (A JavaScript framework which makes life easier ;)</li>
+                    <li>Eigen: /evgen/Eigen/ (Eigenvalue problem solver C++ library)</li>
+                </ul>
+            </div>
         </div>
         <div class="clear">
         </div>
