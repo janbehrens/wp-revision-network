@@ -156,6 +156,9 @@ Vis.Timeline = {
     ShowRearrangeView : function() {
         var view = $('rearrange');
         view.show();
+        if (Vis.Drawing) {
+            Vis.Drawing.ClearText();
+        }
     },
     //******************************************************************************************
     //* @PUBLIC: Hides the rearrange view

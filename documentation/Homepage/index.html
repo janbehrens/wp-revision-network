@@ -26,7 +26,7 @@
                 and has been implemented for the course<br />
                 <i>Visualisierung 2</i> at the TU Vienna<br />
                 The complete source code can be downloaded at <a href="https://github.com/antofosm/wp-revision-network" target="_blank">GitHub</a>.<br /><br />
-                The complete program is platform independent, we have tested it with Linux and Windows 7<br />
+                The complete program is platform independent, we have tested it with Linux and Windows 7.<br />
                 <br />
                 This document is split into following sections:
                 <ol>
@@ -47,7 +47,7 @@
                 <div>
                     <ul>
                         <li>WebGL enabled Browser - we have tested it with Mozilla Firefox</li>
-                        <li>Perl interpretor (on Windows: Strawberry Perl)</li>
+                        <li>Perl interpreter (on Windows: Strawberry Perl)</li>
                         <li>MySQL</li>
                         <li>Web Server (IIS with PHP or Apache)</li>
                     </ul>
@@ -63,7 +63,7 @@
 
                 <h3>Perl</h3>
                 <div>
-                    If you are using Windows you have to install an additional Perl interpretor. A good one is 
+                    If you are using Windows you have to install an additional Perl interpreter. A good one is 
                     <a href="http://strawberryperl.com/" target="_blank">Strawberry Perl</a>. Be careful with the 64-bit version as it might not recognize
                     additional modules.<br />
                     <br />
@@ -91,7 +91,7 @@
                 <h3>EvGen - Tool</h3>
                 <div>
                     This tool is used to calculate the eigenvalues/-vectors on the fly. It is a C++ program and has to be compiled before you use it.
-                    For Windows users a VS2010 solution file is provided in the source folder. For linux users just use a GCC compiler.
+                    For Windows users a VS2010 solution file is provided in the source folder. For Linux users just use a GCC compiler.
                     Before you compile the program make sure to enter the correct database credentials in the evgen.cpp file in the main function.<br />
                     If you are using Windows make sure to add the folder where the file: <i>libmysql.dll</i> is located to your Windows Path variable (global). 
                     The file can be found in your MySql installation lib folder.<br />
@@ -118,7 +118,7 @@
                 Run <code>perl parse.pl CONNECTION ARTICLES DUMPFILE</code><br />
                 <ul>
                     <li>CONNECTION : database credentials in the form "dbname,dbhost,dbuser,dbpass"</li>
-                    <li>ARTICLES : page titles whose history you want to analyse as comma-separated list, e.g. "Alan Smithee, Ang Lee, Aussagenlogik" (use those double quotes!)</li>
+                    <li>ARTICLES : page titles whose history you want to analyze as comma-separated list, e.g. "Alan Smithee, Ang Lee, Aussagenlogik" (use those double quotes!)</li>
                     <li>DUMPFILE : path to the Wikipedia dump file</li>
                 </ul>
             </div>
@@ -129,12 +129,12 @@
                 When you navigate to the start page you will see this screen:<br />
                 <img src="doc/sStart.jpg" alt="Start screen" class="screenshot" />
                 <div>
-                    In the <i>Article</i> dropdown choose the article to be analyzed. The time you select in the <i>max reponse</i> dropdown will
+                    In the <i>Article</i> dropdown choose the article to be analyzed. The time you select in the <i>max response</i> dropdown will
                     be used on data generation to check which authors are revising each other.<br />
                     <br />
                     For example: you choose 10 minutes (default). An author posts a message at 10:30 and another author posts a message 5 minutes later.
                     Those two persons will be marked as possible conflicts because the posted in the specified time range.
-                    If the first author posts 8 minutes later, than it is very likely that a conflict occured -> this will be marked in the view.<br />
+                    If the first author posts 8 minutes later, than it is very likely that a conflict occurred -> this will be marked in the view.<br />
                     <br />
                     After clicking the <i>Load</i> button the data is being generated.<br />
                     <br />
@@ -142,7 +142,7 @@
                 </div>
                 <img src="doc/sMain.jpg" alt="Main screen" class="screenshot" />
                 <div>
-                    As you can see in the screenshot, many conflicts occured on this article. TODO: describe what you can see here, what the lines/circles/ect.
+                    As you can see in the screenshot, many conflicts occurred on this article. TODO: describe what you can see here, what the lines/circles/ect.
                     mean.
                     <br />
                     <br />
@@ -162,10 +162,10 @@
                 First of all the parser extracts necessary content and saves it into the database (username and revision date).
                 In the next step the weights between different authors are calculated based on the provided <i>max response</i> time.
                 This is done in the <i>MySql-Routine "getEdges()"</i>.
-                Therefore the timedifference between to sequently revisions is taken. If this difference is smaller than the <i>max response</i> time
+                Therefore the time difference between to sequent revisions is taken. If this difference is smaller than the <i>max response</i> time
                 the result is normalized and saved as weight. If this happens more than once to the same authors the weights are summed up.<br />
                 <br />
-                Now the adjacency matrix is being generated. This is done in the evgen-tool and can look like this:<br />
+                Now the adjacency matrix is being generated. This is done in the EvGen-tool and can look like this:<br />
                 <img src="doc/sAdja.jpg" alt="Adjacency matrix" class="screenshot" />
                 <div>
                     After the matrix has been created the eigenvalues are calculated. The smallest eigenvalue and its corresponding eigenvector
@@ -199,14 +199,14 @@
                     <br />
                     The second one was the <a href="http://www.netlib.org/lapack/" target="LAPACK">LAPACK</a> library which is written in Fortran 
                     and is available in PHP (but only on Linux systems - it is very difficult to get it running on a Windows machine - to difficult for this lecture). 
-                    Another problem with this library was, that it did not return the complete eigenvectors.<br />
+                    Another problem with this library was that it did not return the complete eigenvectors.<br />
                     <br />
                     The next library was <a href="http://www.alglib.net/" target="_blank">ALGLIB</a>. 
-                    It served our needs but it was only available for external tools like C#, C++, VBA, Delphi or Phyton.
+                    It served our needs but it was only available for external tools like C#, C++, VBA, Delphi or Python.
                     So we chose C++ because this language runs everywhere ;).<br />
                     <br />
                     In the beginning this tool did everything as expected. When we were almost finished with the drawing of the author positions we observed
-                    weired behaviour. We figured out, that this library produced huge rounding errors on larger matrices (up to 200x200).<br />
+                    weird behavior. We figured out, that this library produced huge rounding errors on larger matrices (up to 200x200).<br />
                     <br />
                     So we had to choose another library and found the 
                     <a href="http://eigen.tuxfamily.org/index.php?title=Main_Page" target="_blank">EIGEN template library</a> finally.<br />
@@ -216,7 +216,7 @@
                 <div>
                     For our implementation we chose WebGL. Because this is a JavaScript based language and it runs in the browser we needed
                     a server side scripting language (for platform independence we chose PHP). Also we had to store and handle huge amounts of data, so
-                    we a database system was necessary as well (again a platform independend system: MySql).
+                    we a database system was necessary as well (again a platform independent system: MySql).
                 </div>
             </div>
 
@@ -232,7 +232,7 @@
                 </ul>
                 Additional 3rd party libraries:
                 <ul>
-                    <li>PrototypeJS: /htdocs/scripts/ (A javascript framework which makes life easier ;)</li>
+                    <li>PrototypeJS: /htdocs/scripts/ (A JavaScript framework which makes life easier ;)</li>
                     <li>Eigen: /evgen/Eigen/ (Eigenvalue problem solver C++ library)</li>
                 </ul>
             </div>

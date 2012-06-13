@@ -6,7 +6,7 @@
         require("config.php");
 
         echo "<select name='article' id='article'>";
-        echo "<option>Please select ...</option>";
+        echo "<option value=''>Please select ...</option>";
 
         $Conn = mysql_connect($Server, $User, $Passwort);
         mysql_select_db($DB, $Conn);
@@ -146,6 +146,15 @@
             </div>
 
             <div id="tl-status"><!-- Month: 02-2012, Number of revisions: 200 //--></div>
+
+            <div id="error-screen" style="display:none">
+                <div class="error-hl">Sorry</div>
+                <div class="error-content">
+                    No data can displayed for the selected date range. It seems there were no conflicts at all ;)<br>
+                    <br>
+                    Choose another date range and try it again.
+                </div>
+            </div>
         </div>
         <div class="clear">
         </div>
