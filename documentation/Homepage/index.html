@@ -74,7 +74,22 @@
                     click <a href="http://php.iis.net/" target="_blank">here</a> for an installation guide. For older versions you can use 
                     <a href="http://www.iisadmin.co.uk/?p=4" target="_blank">this</a> solution.<br />
                     <br />
-                    After PHP has been installed successfully use the config.php in the htdocs folder and enter the MySQL credentials there.
+                    After PHP has been installed successfully use the config.php in the htdocs folder and enter the MySQL credentials there.<br />
+                </div>
+
+                <h3>EvGen - Tool</h3>
+                <div>
+                    This tool is used to calculate the eigenvalues/-vectors on the fly. It is a C++ program and has to be compiled before you use it.
+                    For Windows users a VS2010 solution file is provided in the source folder. For linux users just use a GCC compiler.
+                    Before you compile the program make sure to enter the correct database credentials in the evgen.cpp file in the main function.<br />
+                    If you are using Windows make sure to add the folder where the file: <i>libmysql.dll</i> is located to your Windows Path variable (global). 
+                    The file can be found in your MySql installation lib folder.<br />
+                    <br />
+                    After compilation copy the executable to the following folder:
+                    <ul>
+                        <li>Windows: /htdocs/evgen-bin/ (make sure PHP-User has execute permission)</li>
+                        <li>Linux: /evgen-bin/</li>
+                    </ul>
                 </div>
             </div>
 
