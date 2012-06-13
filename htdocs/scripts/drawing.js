@@ -84,17 +84,17 @@ Vis.Drawing = {
         var yOffset = 0.01 * weight * yOrtho/len/this.s;
         
         //then limit the width
-        xOffset = xOffset < 0.005 ? 0 : xOffset;
+        xOffset = xOffset < 0.001 ? 0.001 : xOffset;
         xOffset = xOffset > 0.1 ? 0.1 : xOffset;
-        yOffset = yOffset < 0.005 ? 0 : yOffset;
+        yOffset = yOffset < 0.001 ? 0.001 : yOffset;
         yOffset = yOffset > 0.1 ? 0.1 : yOffset;
-        
-		var vertices = [
+
+        var vertices = [
 		    from.x - xOffset, from.y - yOffset,
 		    from.x + xOffset, from.y + yOffset,
 		    to.x - xOffset, to.y - yOffset,
 		    to.x + xOffset, to.y + yOffset ];
-		
+
         var squareVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
