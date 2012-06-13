@@ -13,7 +13,8 @@
     //* runs on linux only
     //******************************************************************************************
     function execEvGenLinux($article, $sid) {
-        //TODO: execute
+        $result = shell_exec("evgen-bin/evgen \"$article\" \"$sid\"");
+        return $result != 0;
     }
 
     //******************************************************************************************
@@ -78,8 +79,10 @@
 	        $RS = mysql_query($SQL, $Conn);
 	        $crow = mysql_fetch_row($RS);
 	        $s = ($crow[0] == 0) ? 0 : $crow[1]/$crow[0];
+	        $rsdmin = PHP_INT_MAX;
+	        $rsdmax = 0;
 
-	        //get author's positions
+	        //get author's positions and extra data
 	        $SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article' and sid = '$sid'";
 	        $RS = mysql_query($SQL, $Conn);
 	        while ($crow = mysql_fetch_row($RS)) {
@@ -102,7 +105,19 @@
 
 	            $SQL = "SELECT weight FROM edge WHERE touser='$crow[0]' and sid = '$sid'";
 	            $RS_1 = mysql_query($SQL, $Conn);
-	            while ($crow_1 = mysql_fetch_row($RS_1)) { $user['in'] += $crow_1[0]; }
+	            while ($crow_1 = mysql_fetch_row($RS_1)) {
+	                $user['in'] += $crow_1[0];
+	            }
+	            
+	            //get relative standard deviation
+	            $user['rsd'] = 0;
+	            $SQL = "SELECT rsd FROM weeklyedits WHERE article='$article' AND user='$crow[0]'";
+	            $RS_1 = mysql_query($SQL, $Conn);
+	            while ($crow_1 = mysql_fetch_row($RS_1)) {
+	                $user['rsd'] = $crow_1[0];
+	                $rsdmin = $crow_1[0] < $rsdmin ? $crow_1[0] : $rsdmin;
+	                $rsdmax = $crow_1[0] > $rsdmax ? $crow_1[0] : $rsdmax;
+	            }
 
 	            if ($user['p1'] != 0 || $user['p2'] != 0) {
 	                $positions[] = $user;
@@ -127,7 +142,9 @@
 
         echo "{ \"positions\" : ";
         echo json_encode($positions);
-        echo ", \"skewness\" : " . $s . "}";
+        echo ", \"skewness\" : " . $s;
+        echo ", \"rsdmin\" : " . $rsdmin;
+        echo ", \"rsdmax\" : " . $rsdmax . "}";
     }
 
     //******************************************************************************************
