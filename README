@@ -6,3 +6,14 @@ wp-revision-network is a tool to visualize revision networks derived from wikipe
 Authors: jb3@tzi.de, rebec@gmx.at
 
 [1] Brandes, U. & Lerner, J. (2008): Visual Analysis of Controversy in User-generated Encyclopedias. In: Journal Information Visualization - Special issue on visual analytics science and technology, 7(1): 34-48.
+
+-----------------------------
+
+"wp-revision-network" is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 2 as
+published by the Free Software Foundation.
+
+OSMT is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
