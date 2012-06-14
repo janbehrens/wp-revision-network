@@ -29,6 +29,8 @@
         mysql_select_db($DB, $Conn);
         mysql_query("set names 'utf8';", $Conn);
 
+        $article = mysql_real_escape_string($article);
+
         //calculate weights
         $sd = getDateBy('sd');
         $ed = getDateBy('ed');
