@@ -8,13 +8,13 @@
         echo "<select name='article' id='article'>";
         echo "<option value=''>Please select ...</option>";
 
-        $Conn = mysql_connect($Server, $User, $Passwort);
-        mysql_select_db($DB, $Conn);
-        mysql_query("set names 'utf8';", $Conn);
+        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+        mysql_select_db($dbname, $dbconn);
+        mysql_query("set names 'utf8';", $dbconn);
 
-        $SQL = "SELECT DISTINCT article FROM entry ORDER BY article";
-        $RS = mysql_query($SQL, $Conn);
-        while ($crow = mysql_fetch_row($RS)) {
+        $sql = "SELECT DISTINCT article FROM entry ORDER BY article";
+        $rs = mysql_query($sql, $dbconn);
+        while ($crow = mysql_fetch_row($rs)) {
             echo "<option value=\"$crow[0]\">$crow[0]</option>\n";
         }
         echo "</select>";

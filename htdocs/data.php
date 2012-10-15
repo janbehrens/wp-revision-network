@@ -25,9 +25,9 @@
         require("config.php");
         $sid = session_id();
 
-        $Conn = mysql_connect($Server, $User, $Passwort);
-        mysql_select_db($DB, $Conn);
-        mysql_query("set names 'utf8';", $Conn);
+        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+        mysql_select_db($dbname, $dbconn);
+        mysql_query("set names 'utf8';", $dbconn);
 
         $article = mysql_real_escape_string($article);
 
@@ -37,12 +37,12 @@
         $dmax = $_POST['dmax'];
 
         if ($ed == null) {
-            mysql_query("call getEdges('$article', '$sid', $dmax, null, null)", $Conn);
+            mysql_query("call getEdges('$article', '$sid', $dmax, null, null)", $dbconn);
         } else {
             //2006-03-31T22:00:00.000Z
             $sdf = $sd->format('Y-m-d');
             $edf = $ed->format('Y-m-d');
-            mysql_query("call getEdges('$article', '$sid', $dmax, '$sdf', '$edf')", $Conn);
+            mysql_query("call getEdges('$article', '$sid', $dmax, '$sdf', '$edf')", $dbconn);
         }
 
         $result = false;
@@ -57,9 +57,9 @@
         //todo: check if an error occured
         if ($result) {
             while (true) {
-                $SQL = "SELECT finished FROM evgen WHERE sid = '$sid'";
-                $RS = mysql_query($SQL, $Conn);
-	            $crow = mysql_fetch_row($RS);
+                $sql = "SELECT finished FROM evgen WHERE sid = '$sid'";
+                $rs = mysql_query($sql, $dbconn);
+	            $crow = mysql_fetch_row($rs);
 
                 if ($crow[0] == 0) {
                     usleep(250000);
@@ -74,20 +74,20 @@
         $rsdmax = 0;
 
         //check if edges are available
-        $SQL = "SELECT count(*) FROM edge WHERE article='$article' and sid = '$sid'";
-	    $RS = mysql_query($SQL, $Conn);
-	    $crow = mysql_fetch_row($RS);
+        $sql = "SELECT count(*) FROM edge WHERE article='$article' and sid = '$sid'";
+	    $rs = mysql_query($sql, $dbconn);
+	    $crow = mysql_fetch_row($rs);
         if ($crow[0] > 0) {
             //get eigenvalue and calculate skewness
-	        $SQL = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article='$article' and sid = '$sid'";
-	        $RS = mysql_query($SQL, $Conn);
-	        $crow = mysql_fetch_row($RS);
+	        $sql = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article='$article' and sid = '$sid'";
+	        $rs = mysql_query($sql, $dbconn);
+	        $crow = mysql_fetch_row($rs);
 	        $s = ($crow[0] == 0) ? 0 : $crow[1]/$crow[0];
 
 	        //get author's positions and extra data
-	        $SQL = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article' and sid = '$sid'";
-	        $RS = mysql_query($SQL, $Conn);
-	        while ($crow = mysql_fetch_row($RS)) {
+	        $sql = "SELECT user, v1, v2 FROM eigenvector WHERE article='$article' and sid = '$sid'";
+	        $rs = mysql_query($sql, $dbconn);
+	        while ($crow = mysql_fetch_row($rs)) {
 	            $user = array();
 	            $user['name'] = $crow[0];
 	            $user['p1'] = (float) $crow[1];
@@ -98,24 +98,24 @@
 	            $user['in'] = 0;
 	            $user['revised'] = array();
 	        
-	            $SQL = "SELECT weight, touser FROM edge WHERE fromuser='$crow[0]' and sid = '$sid'";
-	            $RS_1 = mysql_query($SQL, $Conn);
-	            while ($crow_1 = mysql_fetch_row($RS_1)) {
+	            $sql = "SELECT weight, touser FROM edge WHERE fromuser='$crow[0]' and sid = '$sid'";
+	            $rs_1 = mysql_query($sql, $dbconn);
+	            while ($crow_1 = mysql_fetch_row($rs_1)) {
 	                $user['out'] += $crow_1[0];
 	                $user['revised'][$crow_1[1]] = (float) $crow_1[0];
 	            }
 
-	            $SQL = "SELECT weight FROM edge WHERE touser='$crow[0]' and sid = '$sid'";
-	            $RS_1 = mysql_query($SQL, $Conn);
-	            while ($crow_1 = mysql_fetch_row($RS_1)) {
+	            $sql = "SELECT weight FROM edge WHERE touser='$crow[0]' and sid = '$sid'";
+	            $rs_1 = mysql_query($sql, $dbconn);
+	            while ($crow_1 = mysql_fetch_row($rs_1)) {
 	                $user['in'] += $crow_1[0];
 	            }
 	            
 	            //get relative standard deviation
 	            $user['rsd'] = 0;
-	            $SQL = "SELECT rsd FROM weeklyedits WHERE article='$article' AND user='$crow[0]'";
-	            $RS_1 = mysql_query($SQL, $Conn);
-	            while ($crow_1 = mysql_fetch_row($RS_1)) {
+	            $sql = "SELECT rsd FROM weeklyedits WHERE article='$article' AND user='$crow[0]'";
+	            $rs_1 = mysql_query($sql, $dbconn);
+	            while ($crow_1 = mysql_fetch_row($rs_1)) {
 	                $user['rsd'] = $crow_1[0];
 	            }
 	                $rsdmin = $user['rsd'] < $rsdmin ? $user['rsd'] : $rsdmin;
@@ -171,12 +171,12 @@
     function getTimelineData($article) {
         require("config.php");
 
-        $Conn = mysql_connect($Server, $User, $Passwort);
-        mysql_select_db($DB, $Conn);
-        mysql_query("set names 'utf8';", $Conn);
+        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+        mysql_select_db($dbname, $dbconn);
+        mysql_query("set names 'utf8';", $dbconn);
 
-        $SQL = "SELECT year(timestamp) as y, month(timestamp) as m, count(*) as amount FROM entry WHERE article = '$article' GROUP BY year(timestamp), month(timestamp) ORDER BY timestamp";
-        $RS = mysql_query($SQL, $Conn);
+        $sql = "SELECT year(timestamp) as y, month(timestamp) as m, count(*) as amount FROM entry WHERE article = '$article' GROUP BY year(timestamp), month(timestamp) ORDER BY timestamp";
+        $rs = mysql_query($sql, $dbconn);
         $dates = array();
 
         $first = true;
@@ -184,7 +184,7 @@
         $sMonth = 0;
         $eYear = 0;
         $eMonth = 0;
-	    while ($crow = mysql_fetch_row($RS)) {
+	    while ($crow = mysql_fetch_row($rs)) {
             $m = str_pad($crow[1], 2, '0', STR_PAD_LEFT);
             $y = $crow[0];
             if ($first) {

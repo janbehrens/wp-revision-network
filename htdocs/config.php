@@ -1,7 +1,7 @@
 <?php
 //database connection details
-$Server = "localhost";
-$User = "root"; 
-$Passwort = "pw";
-$DB = "wpdump";
+$dbserver = "localhost";
+$dbuser = "root"; 
+$dbpassword = "pw";
+$dbname = "wpdump";
 ?>
