@@ -19,6 +19,7 @@ Vis = {
         new Ajax.Request('data.php', {
 			parameters      : {
 				'load'      : true,
+				'wiki'      : $F('wiki'),
                 'article'   : $F('article'),
                 'dmax'      : $F('dmax'),
                 'sd'        : (daterange) ? daterange.sd : '',
@@ -36,6 +37,7 @@ Vis = {
                 new Ajax.Request('data.php', {
 			        parameters      : {
 				        'timeline'  : true,
+				        'wiki'      : $F('wiki'),
                         'article'   : $F('article'),
                         'sd'        : (daterange) ? daterange.sd : '',
                         'ed'        : (daterange) ? daterange.ed : ''

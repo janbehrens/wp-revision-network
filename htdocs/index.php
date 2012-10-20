@@ -19,6 +19,32 @@
         }
         echo "</select>";
     }
+    
+    //******************************************************************************************
+    //* Draws the WP dropdown
+    //******************************************************************************************
+    function drawWpDD() {
+        require("config.php");
+
+        echo "<select name='wiki' id='wiki'>";
+        echo "<option value=''>Please select ...</option>";
+
+        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+        mysql_select_db($dbnametoolserver, $dbconn);
+        
+        //$sql = "SELECT w.dbname, l.english_name FROM wiki w JOIN language l ON w.lang = l.lang WHERE family = 'wikipedia' ORDER BY l.english_name";
+        $sql = "SELECT dbname FROM wiki WHERE family = 'wikipedia' ORDER BY dbname";
+        $rs = mysql_query($sql, $dbconn);
+        while ($crow = mysql_fetch_row($rs)) {
+            echo "<option value=\"$crow[0]\">" . substr($crow[0], 0, count($crow[0]) - 3) . "</option>\n";
+        }
+        echo "</select>";
+    }
+
+    function drawArticleInput() {
+        echo "<input name='article' id='article'>";
+        echo "</input>";
+    }
 ?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -93,8 +119,8 @@
             <div>
                 <table border="0" cellspacing="4" cellpadding="0">
                     <tr>
-                        <td>Article:</td>
-                        <td><?php drawArticleDD() ?></td>
+                        <td>Wiki: <?php drawWpDD() ?></td>
+                        <td>Article: <?php drawArticleInput() ?></td>
                         <td>Max response:</td>
                         <td>
                             <select name="dmax" id="dmax">

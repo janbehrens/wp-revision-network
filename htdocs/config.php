@@ -3,5 +3,7 @@
 $dbserver = "localhost";
 $dbuser = "root"; 
 $dbpassword = "pw";
-$dbname = "wpdump";
+$dbname = "revnet";
+$dbnamewp = "wikipedia";
+$dbnametoolserver = "revnet";
 ?>

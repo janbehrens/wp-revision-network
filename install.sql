@@ -1,19 +1,32 @@
+CREATE TABLE `page` (
+  `id` serial NOT NULL,
+  `title` text NOT NULL,
+  `wiki` varchar(255) NOT NULL,
+  `lastupdate` datetime NOT NULL
+);
+
+CREATE TABLE `entry` (
+  `userid` varchar(255) NOT NULL,
+  `timestamp` datetime NOT NULL,
+  `article` integer NOT NULL
+);
+
 CREATE TABLE `edge` (
   `fromuser` varchar(255) NOT NULL,
   `touser` varchar(255) NOT NULL,
   `weight` float NOT NULL,
-  `article` varchar(255) NOT NULL,
+  `article` integer NOT NULL,
   `sid` varchar(255) NOT NULL
 );
 
 CREATE TABLE `weeklyedits` (
   `user` varchar(255) NOT NULL,
-  `article` varchar(255) NOT NULL,
+  `article` integer NOT NULL,
   `rsd` float NOT NULL COMMENT 'relative standard deviation of weekly edits'
 );
 
 CREATE TABLE `eigenvalue` (
-  `article` varchar(255) NOT NULL,
+  `article` integer NOT NULL,
   `lambda1` double NOT NULL COMMENT 'smallest eigenvalue',
   `lambda2` double NOT NULL COMMENT 'second smallest eigenvalue',
   `sid` varchar(255) NOT NULL,
@@ -22,17 +35,11 @@ CREATE TABLE `eigenvalue` (
 
 CREATE TABLE `eigenvector` (
   `user` varchar(255) NOT NULL,
-  `article` varchar(255) NOT NULL,
+  `article` integer NOT NULL,
   `v1` double NOT NULL COMMENT 'vectorelement to the smallest eigenvalue',
   `v2` double NOT NULL COMMENT 'vectorelement to the 2nd smallest eigenvalue',
   `sid` varchar(255) NOT NULL,
   PRIMARY KEY (`user`,`article`,`sid`)
-);
-
-CREATE TABLE `entry` (
-  `userid` varchar(255) NOT NULL,
-  `timestamp` datetime NOT NULL,
-  `article` varchar(255) NOT NULL
 );
 
 CREATE TABLE `evgen` (
@@ -48,7 +55,7 @@ CREATE TABLE `evgen` (
 
 DELIMITER $$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `getEdges`(art varchar(255), sid varchar(255), dmax int, sd varchar(25), ed varchar(25))
+CREATE PROCEDURE `getEdges`(art integer, sid varchar(255), dmax int, sd varchar(25), ed varchar(25))
 BEGIN
     DECLARE currentUser varchar(255);
     DECLARE lastUser varchar(255);
@@ -66,10 +73,10 @@ BEGIN
     DECLARE done INT DEFAULT FALSE;
     
     DECLARE cur1 CURSOR FOR SELECT user, sum, sumsqr FROM sigma;
-    DECLARE cur CURSOR FOR SELECT userid, timestamp FROM wpdump.entry
+    DECLARE cur CURSOR FOR SELECT userid, timestamp FROM entry
     WHERE article = art
-    AND timestamp >= COALESCE(STR_TO_DATE(sd, '%Y-%m-%d'), (SELECT min(timestamp) FROM wpdump.entry WHERE article = art))
-    AND timestamp <= COALESCE(STR_TO_DATE(ed, '%Y-%m-%d'), (SELECT max(timestamp) FROM wpdump.entry WHERE article = art))
+    AND timestamp >= COALESCE(STR_TO_DATE(sd, '%Y-%m-%d'), (SELECT min(timestamp) FROM entry WHERE article = art))
+    AND timestamp <= COALESCE(STR_TO_DATE(ed, '%Y-%m-%d'), (SELECT max(timestamp) FROM entry WHERE article = art))
     ORDER BY timestamp;
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
@@ -86,7 +93,6 @@ BEGIN
     
     OPEN cur;
     read_loop: LOOP
-        #SET done = FALSE;
         FETCH cur INTO currentUser, currentTimestamp;
         
         IF done THEN
@@ -112,8 +118,6 @@ BEGIN
             SELECT count(*) INTO @w FROM edge WHERE fromuser = currentUser AND touser = lastUser
             AND article = art AND edge.sid = sid;
             IF @w > 0 THEN
-                #SELECT weight INTO @w FROM tmp WHERE fromuser = currentUser AND touser = lastUser;
-                #UPDATE tmp SET weight = (@w + wdt) WHERE fromuser = currentUser AND touser = lastUser;
                 UPDATE edge
                 SET weight = (weight + wdt)
                 WHERE fromuser = currentUser AND touser = lastUser
@@ -144,7 +148,7 @@ BEGIN
     
     SET done = FALSE;
     
-    CREATE TEMPORARY TABLE weekcount (count int);
+    CREATE TEMPORARY TABLE IF NOT EXISTS weekcount (count int);
     INSERT INTO weekcount VALUES (weekCount);
     
     OPEN cur1;
@@ -165,8 +169,6 @@ BEGIN
         END IF;
     END LOOP;
     CLOSE cur1;
-    
-    #DROP TEMPORARY TABLE IF EXISTS sigma;
     
     SET SQL_SAFE_UPDATES = 1;
 END
