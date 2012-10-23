@@ -19,7 +19,7 @@ else {
 }
 
 $wiki = 'enwiki_p';
-$article = 'River Roddlesworth';
+$article = 'AMF Bowling World Lanes';
 
 $article = mysql_real_escape_string($article);
 $article = str_replace(' ', '_', $article);

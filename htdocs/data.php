@@ -4,19 +4,18 @@
 //* executes the ev-gen tool to calculate the eigenvalues/eigenvectors
 //******************************************************************************************
 function execEvGen($page_id, $sid) {
-    require("config.php");
-    
-    if (PHP_OS == 'Linux') {
-        $result = shell_exec("evgen-bin/evgen $page_id $sid $dbserver $dbuser $dbpassword $dbname");
-    }
-    else {
-        $result = shell_exec("evgen-bin\\evgen.exe $page_id $sid $dbserver $dbuser $dbpassword $dbname");
-    }
+    //if (PHP_OS == 'Linux') {
+        $result = shell_exec("evgen-bin/evgen $page_id $sid debug");
+    //}
+    //else {
+    //    $result = shell_exec("evgen-bin\\evgen.exe $page_id $sid");
+    //}
     return $result;
 }
 
 //******************************************************************************************
 //* generates the data
+//* TODO: prevent SQL injection (maybe)
 //******************************************************************************************
 function getData() {
     require("config.php");
@@ -168,6 +167,7 @@ function getLastElement($array) {
 
 //******************************************************************************************
 //* gets the timeline data
+//* TODO: prevent SQL injection (maybe)
 //******************************************************************************************
 function getTimelineData() {
     require("config.php");
@@ -286,10 +286,14 @@ function get_page_id($wiki, $article) {
     }
     else {
         //read revision data from the wikipedia database
+        $dbserver = str_replace('_', '-', $wiki) . 
+".rrdb.toolserver.org";
+        
+        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+        mysql_query("set names 'utf8';", $dbconn);
         
         mysql_select_db($wiki, $dbconn);
         
-        $article = str_replace(' ', '_', $article);
         $data = array();
         
         $sql = "SELECT rev_user_text, rev_timestamp, page_title from revision r
@@ -299,7 +303,13 @@ function get_page_id($wiki, $article) {
         while ($crow = mysql_fetch_row($rs)) {
             $data[] = $crow;
         }
-        
+
+        mysql_close($dbconn);
+
+        require("config.php");
+        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+        mysql_query("set names 'utf8';", $dbconn);
+
         mysql_select_db($dbname, $dbconn);
         
         $sql = "INSERT INTO page VALUES (DEFAULT, '" . $data[0][2]. "', '$wiki', '" . date('Y-m-d H:i:s') . "')";

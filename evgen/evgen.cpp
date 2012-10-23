@@ -12,10 +12,9 @@
 
 const char *_article = "";
 const char *_sid = "";
-const char *_dbhost = "localhost";
-const char *_dbuser = "root";
-const char *_dbpass = "pw";
-const char *_dbname = "revnet";
+const char *_dbhost = "sql-s1-user";
+const char *_dbpass = "";
+const char *_dbname = "u_ant_revnet";
 
 ofstream debugfile;
 
@@ -98,6 +97,8 @@ int main(int argc, char* argv[]) {
 	if (debugOutput) {
 		cout << "Article: " << _article << endl;
 		cout << "SID: " << _sid << endl;
+                debugfile << "Article: " << _article << endl;
+                debugfile << "SID: " << _sid << endl;
 	}
 
 	MYSQL *connection, mysql;
@@ -105,8 +106,8 @@ int main(int argc, char* argv[]) {
 	AdjacencyMatrix *mat = new AdjacencyMatrix();
 
 	mysql_init(&mysql);
-	//mysql_options(&mysql, MYSQL_READ_DEFAULT_GROUP, "client");
-	connection = mysql_real_connect(&mysql, _dbhost, _dbuser, _dbpass, _dbname, 0, NULL, CLIENT_MULTI_STATEMENTS);
+	mysql_options(&mysql, MYSQL_READ_DEFAULT_GROUP, "client");
+	connection = mysql_real_connect(&mysql, _dbhost, NULL, _dbpass, NULL, 0, NULL, CLIENT_MULTI_STATEMENTS);
 	if (!connection) {
 		//fprintf(stderr, "Failed to connect to database: Error: %s\n",
 		//	  mysql_error(&mysql));
@@ -127,8 +128,7 @@ int main(int argc, char* argv[]) {
 	sql << "SELECT * FROM edge e WHERE article = " << _article << " AND sid = '" << _sid << "';";
 	string ssql = sql.str();
 	int queryResult = mysql_query(connection, ssql.c_str());
-	cout << "Query: " << queryResult << endl;
-	
+
 	//generate data
 	if (queryResult == 0) {
 		MYSQL_ROW row;
@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
 		}
 		mysql_free_result(result);
 	}
-	else cout << mysql_error(&mysql) << endl;
+	else cout << "Error: " << mysql_error(&mysql) << endl;
 
 	if (debugOutput) {
 		cout << "Items: " << mat->GetCount() << endl;

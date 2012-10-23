@@ -29,6 +29,8 @@
         echo "<select name='wiki' id='wiki'>";
         echo "<option value=''>Please select ...</option>";
 
+	$dbserver = $dbnametoolserver . ".userdb.toolserver.org";
+
         $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
         mysql_select_db($dbnametoolserver, $dbconn);
         
