@@ -1,45 +1,37 @@
-CREATE TABLE `page` (
-  `id` serial NOT NULL,
-  `title` text NOT NULL,
-  `wiki` varchar(255) NOT NULL,
-  `lastupdate` datetime NOT NULL
-);
-
-CREATE TABLE `entry` (
-  `userid` varchar(255) NOT NULL,
-  `timestamp` datetime NOT NULL,
-  `article` integer NOT NULL
-);
-
 CREATE TABLE `edge` (
   `fromuser` varchar(255) NOT NULL,
   `touser` varchar(255) NOT NULL,
   `weight` float NOT NULL,
   `article` integer NOT NULL,
+  `wiki` char(50) NOT NULL,
   `sid` varchar(255) NOT NULL
 );
 
 CREATE TABLE `weeklyedits` (
   `user` varchar(255) NOT NULL,
+  `rsd` float NOT NULL COMMENT 'relative standard deviation of weekly edits',
   `article` integer NOT NULL,
-  `rsd` float NOT NULL COMMENT 'relative standard deviation of weekly edits'
+  `wiki` char(50) NOT NULL,
+  `sid` varchar(255) NOT NULL
 );
 
 CREATE TABLE `eigenvalue` (
-  `article` integer NOT NULL,
   `lambda1` double NOT NULL COMMENT 'smallest eigenvalue',
   `lambda2` double NOT NULL COMMENT 'second smallest eigenvalue',
+  `article` integer NOT NULL,
+  `wiki` char(50) NOT NULL,
   `sid` varchar(255) NOT NULL,
-  PRIMARY KEY (`article`,`sid`)
+  PRIMARY KEY (`article`, `wiki`)
 );
 
 CREATE TABLE `eigenvector` (
   `user` varchar(255) NOT NULL,
-  `article` integer NOT NULL,
   `v1` double NOT NULL COMMENT 'vectorelement to the smallest eigenvalue',
   `v2` double NOT NULL COMMENT 'vectorelement to the 2nd smallest eigenvalue',
+  `article` integer NOT NULL,
+  `wiki` char(50) NOT NULL,
   `sid` varchar(255) NOT NULL,
-  PRIMARY KEY (`user`,`article`,`sid`)
+  PRIMARY KEY (`user`, `article`, `wiki`)
 );
 
 CREATE TABLE `evgen` (
@@ -53,9 +45,27 @@ CREATE TABLE `evgen` (
 -- Note: comments before and after the routine body will not be stored by the server
 -- --------------------------------------------------------------------------------
 
+-- thanks to http://stackoverflow.com/questions/1680850/mysql-stored-procedures-use-a-variable-as-the-database-name-in-a-cursor-declar
+
 DELIMITER $$
 
-CREATE PROCEDURE `getEdges`(art integer, sid varchar(255), dmax int, sd varchar(25), ed varchar(25))
+CREATE PROCEDURE `proc1`(wiki char(50), art integer)
+BEGIN
+  DECLARE SQLStmt TEXT;
+
+  SET @SQLStmt = CONCAT('DROP TEMPORARY TABLE IF EXISTS tmp_revision');
+  PREPARE Stmt FROM @SQLStmt;
+  EXECUTE Stmt;
+  DEALLOCATE PREPARE Stmt;
+  
+  SET @myart = art;
+  SET @SQLStmt = CONCAT('CREATE TEMPORARY TABLE tmp_revision SELECT rev_user_text, rev_timestamp FROM ', wiki, '.revision WHERE rev_page = ? ORDER BY rev_timestamp');
+  PREPARE Stmt FROM @SQLStmt;
+  EXECUTE Stmt USING @myart;
+  DEALLOCATE PREPARE Stmt;
+END$$
+
+CREATE PROCEDURE `proc2`(wiki char(50), art integer, sid varchar(255), dmax int, sd varchar(25), ed varchar(25))
 BEGIN
     DECLARE currentUser varchar(255);
     DECLARE lastUser varchar(255);
@@ -72,14 +82,10 @@ BEGIN
     DECLARE wdt float;
     DECLARE done INT DEFAULT FALSE;
     
+    DECLARE cur CURSOR FOR SELECT rev_user_text, rev_timestamp FROM tmp_revision;
     DECLARE cur1 CURSOR FOR SELECT user, sum, sumsqr FROM sigma;
-    DECLARE cur CURSOR FOR SELECT userid, timestamp FROM entry
-    WHERE article = art
-    AND timestamp >= COALESCE(STR_TO_DATE(sd, '%Y-%m-%d'), (SELECT min(timestamp) FROM entry WHERE article = art))
-    AND timestamp <= COALESCE(STR_TO_DATE(ed, '%Y-%m-%d'), (SELECT max(timestamp) FROM entry WHERE article = art))
-    ORDER BY timestamp;
-    
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
     SET lastUser = '';
     SET w = 0;
     SET weekCount = 0;
@@ -87,7 +93,8 @@ BEGIN
     
     SET SQL_SAFE_UPDATES = 0;
     
-    DELETE FROM edge WHERE edge.sid = sid AND article = art;
+    DELETE FROM edge WHERE edge.sid = sid AND article = art AND edge.wiki = wiki;
+    DELETE FROM weeklyedits WHERE weeklyedits.sid = sid AND article = art AND weeklyedits.wiki = wiki;
     
     CREATE TEMPORARY TABLE IF NOT EXISTS sigma (user varchar(255), edits int, sum int, sumsqr int, PRIMARY KEY (`user`));
     
@@ -116,15 +123,15 @@ BEGIN
             END IF;
             
             SELECT count(*) INTO @w FROM edge WHERE fromuser = currentUser AND touser = lastUser
-            AND article = art AND edge.sid = sid;
+            AND article = art AND edge.wiki = wiki AND edge.sid = sid;
             IF @w > 0 THEN
                 UPDATE edge
                 SET weight = (weight + wdt)
                 WHERE fromuser = currentUser AND touser = lastUser
-                AND article = art AND edge.sid = sid;
+                AND article = art AND edge.wiki = wiki AND edge.sid = sid;
             ELSE
                 IF wdt <> 0 THEN
-                    INSERT INTO edge VALUES (currentUser, lastUser, wdt, art, sid);
+                    INSERT INTO edge VALUES (currentUser, lastUser, wdt, art, wiki, sid);
                 END IF;
             END IF;
         END IF;
@@ -164,12 +171,18 @@ BEGIN
             SET weeklyVariance = (currentSumSqr - currentSum * weeklyMean) / weekCount;
             
             IF weeklyMean > 0 THEN
-                INSERT INTO weeklyedits VALUES (currentUser, art, SQRT(weeklyVariance)/weeklyMean);
+                INSERT INTO weeklyedits VALUES (currentUser, SQRT(weeklyVariance)/weeklyMean, art, wiki, sid);
             END IF;
         END IF;
     END LOOP;
     CLOSE cur1;
     
     SET SQL_SAFE_UPDATES = 1;
-END
+END$$
+
+CREATE PROCEDURE `getEdges`(wiki char(50), art integer, sid varchar(255), dmax int, sd varchar(25), ed varchar(25))
+BEGIN
+  CALL proc1(wiki, art);
+  CALL proc2(wiki, art, sid, dmax, sd, ed);
+END$$
 
