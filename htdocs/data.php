@@ -15,9 +15,8 @@ function execEvGen($page_id, $sid) {
 
 //******************************************************************************************
 //* generates the data
-//* TODO: prevent SQL injection (maybe)
 //******************************************************************************************
-function getData() {
+function getData($wiki) {
     require("config.php");
     
     $page_id = $_SESSION['page_id'];
@@ -36,12 +35,12 @@ function getData() {
     //call edge calculation function 
 
     if ($ed == null) {
-        mysql_query("call getEdges($page_id, '$sid', $dmax, null, null)", $dbconn);
+        mysql_query("call getEdges($wiki, $page_id, '$sid', $dmax, null, null)", $dbconn);
     } else {
         //2006-03-31T22:00:00.000Z
         $sdf = $sd->format('Y-m-d');
         $edf = $ed->format('Y-m-d');
-        mysql_query("call getEdges($page_id, '$sid', $dmax, '$sdf', '$edf')", $dbconn);
+        mysql_query("call getEdges($wiki, $page_id, '$sid', $dmax, '$sdf', '$edf')", $dbconn);
     }
     
     //error_log("finished edge calculation");
@@ -52,41 +51,24 @@ function getData() {
     $result = execEvGen($page_id, $sid);
 
 
-    //this part checks if the evgen tool has finished inserting the data
-    //todo: check if an error occured
-    /*if ($result) {
-        while (true) {
-            $sql = "SELECT finished FROM evgen WHERE sid = '$sid'";
-            $rs = mysql_query($sql, $dbconn);
-            $crow = mysql_fetch_row($rs);
-
-            if ($crow[0] == 0) {
-                usleep(250000);
-            } else {
-                error_log("finished evgen");
-                break;
-            }
-        }
-    }*/
-
     $positions = array();
     $s = 0;
     $rsdmin = PHP_INT_MAX;
     $rsdmax = 0;
 
     //check if edges are available
-    $sql = "SELECT count(*) FROM edge WHERE article=$page_id and sid = '$sid'";
+    $sql = "SELECT count(*) FROM edge WHERE article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
     $rs = mysql_query($sql, $dbconn);
     $crow = mysql_fetch_row($rs);
     if ($crow[0] > 0) {
         //get eigenvalue and calculate skewness
-        $sql = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article=$page_id and sid = '$sid'";
+        $sql = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
         $rs = mysql_query($sql, $dbconn);
         $crow = mysql_fetch_row($rs);
         $s = ($crow[0] == 0) ? 0 : $crow[1]/$crow[0];
 
         //get author's positions and extra data
-        $sql = "SELECT user, v1, v2 FROM eigenvector WHERE article=$page_id and sid = '$sid'";
+        $sql = "SELECT user, v1, v2 FROM eigenvector WHERE article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
         $rs = mysql_query($sql, $dbconn);
         while ($crow = mysql_fetch_row($rs)) {
             $user = array();
@@ -99,14 +81,14 @@ function getData() {
             $user['in'] = 0;
             $user['revised'] = array();
         
-            $sql = "SELECT weight, touser FROM edge WHERE fromuser='$crow[0]' and sid = '$sid'";
+            $sql = "SELECT weight, touser FROM edge WHERE fromuser = '$crow[0]' AND article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['out'] += $crow_1[0];
                 $user['revised'][$crow_1[1]] = (float) $crow_1[0];
             }
 
-            $sql = "SELECT weight FROM edge WHERE touser='$crow[0]' and sid = '$sid'";
+            $sql = "SELECT weight FROM edge WHERE touser = '$crow[0]' AND article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['in'] += $crow_1[0];
@@ -114,7 +96,7 @@ function getData() {
             
             //get relative standard deviation
             $user['rsd'] = 0;
-            $sql = "SELECT rsd FROM weeklyedits WHERE article=$page_id AND user='$crow[0]'";
+            $sql = "SELECT rsd FROM weeklyedits WHERE article = $page_id AND wiki = '$wiki' AND user = '$crow[0]'";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['rsd'] = $crow_1[0];
@@ -167,7 +149,6 @@ function getLastElement($array) {
 
 //******************************************************************************************
 //* gets the timeline data
-//* TODO: prevent SQL injection (maybe)
 //******************************************************************************************
 function getTimelineData() {
     require("config.php");
@@ -178,6 +159,7 @@ function getTimelineData() {
     mysql_select_db($dbname, $dbconn);
     mysql_query("set names 'utf8';", $dbconn);
 
+    //FIXME!
     $sql = "SELECT year(timestamp) as y, month(timestamp) as m, count(*) as amount FROM entry WHERE article = $page_id GROUP BY year(timestamp), month(timestamp) ORDER BY timestamp";
     $rs = mysql_query($sql, $dbconn);
     $dates = array();
@@ -269,63 +251,28 @@ function getDateBy($name) {
 function get_page_id($wiki, $article) {
     require("config.php");
     
+    //read revision data from the wikipedia database
+    $dbserver = str_replace('_', '-', $wiki) . ".rrdb.toolserver.org";
+    
     $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
     mysql_query("set names 'utf8';", $dbconn);
     
-    mysql_select_db($dbname, $dbconn);
+    mysql_select_db($wiki, $dbconn);
     
     $article = mysql_real_escape_string($article);
     $article = str_replace(' ', '_', $article);
 
-    $sql = "SELECT * FROM page WHERE title = '$article' AND wiki = '$wiki'";
-    $rs = mysql_query($sql, $dbconn);
+    $data = array();
     
-    if ($crow = mysql_fetch_row($rs)) {
-        $page_id = $crow[0];
-        //error_log("not querying wp");
-    }
-    else {
-        //read revision data from the wikipedia database
-        $dbserver = str_replace('_', '-', $wiki) . 
-".rrdb.toolserver.org";
-        
-        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
-        mysql_query("set names 'utf8';", $dbconn);
-        
-        mysql_select_db($wiki, $dbconn);
-        
-        $data = array();
-        
-        $sql = "SELECT rev_user_text, rev_timestamp, page_title from revision r
-                JOIN page p ON r.rev_page = p.page_id 
-                WHERE p.page_title = '$article'";
-        $rs = mysql_query($sql, $dbconn);
-        while ($crow = mysql_fetch_row($rs)) {
-            $data[] = $crow;
-        }
+    $sql = "SELECT page_id from page WHERE page_namespace = 0 AND page_title = '$article'";
+    $rs = mysql_query($sql, $dbconn);
+    $crow = mysql_fetch_row($rs);
 
-        mysql_close($dbconn);
-
-        require("config.php");
-        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
-        mysql_query("set names 'utf8';", $dbconn);
-
-        mysql_select_db($dbname, $dbconn);
-        
-        $sql = "INSERT INTO page VALUES (DEFAULT, '" . $data[0][2]. "', '$wiki', '" . date('Y-m-d H:i:s') . "')";
-        mysql_query($sql, $dbconn);
-        
-        $page_id = mysql_insert_id();
-        
-        foreach ($data as $field) {
-            $sql = "INSERT INTO entry VALUES ('$field[0]', $field[1], $page_id)";
-            mysql_query($sql, $dbconn);
-        }
-    }
+    $_SESSION['page_id'] = $crow[0];
+    
+    mysql_close($dbconn);
     
     //error_log("finished reading wp");
-    
-    $_SESSION['page_id'] = $page_id;
 }
 
 //******************************************************************************************
@@ -342,7 +289,7 @@ function main() {
         
         get_page_id($wiki, $article);
         
-        getData();
+        getData($wiki);
     }
     else if (isset($_POST['timeline'])) {
         getTimelineData();

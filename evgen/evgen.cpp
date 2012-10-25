@@ -11,6 +11,7 @@
 #include "adjacencymatrix.h"
 
 const char *_article = "";
+const char *_wiki = "";
 const char *_sid = "";
 const char *_dbhost = "sql-s1-user";
 const char *_dbpass = "";
@@ -43,13 +44,14 @@ string to_string(T const& value) {
 int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd> es, AdjacencyMatrix *mat) {
 	stringstream sql;
 	sql << "SET SQL_SAFE_UPDATES = 0; DELETE FROM evgen WHERE sid = '" << _sid << "'; INSERT INTO evgen VALUES ('" << _sid << "', 0); "
-		<< "DELETE FROM eigenvector WHERE article = " << _article << " and sid = '" << _sid << "'; "
-		<< "DELETE FROM eigenvalue WHERE article = " << _article << " and sid = '" << _sid << "'; "
-		<< "INSERT INTO eigenvalue (article, lambda1, lambda2, sid) VALUES ('" << _article 
-		<< "', " << es.eigenvalues()[0]
-		<< ", " << es.eigenvalues()[1]
-		<< ", '" << _sid
-		<< "'); ";
+		<< "DELETE FROM eigenvector WHERE article = " << _article << " AND wiki = '" << _wiki << "' AND sid = '" << _sid << "'; "
+		<< "DELETE FROM eigenvalue WHERE article = " << _article << " AND wiki = '" << _wiki << "' AND sid = '" << _sid << "'; "
+		<< "INSERT INTO eigenvalue (lambda1, lambda2, article, wiki, sid) VALUES (" 
+		<< es.eigenvalues()[0] << ", "
+		<< es.eigenvalues()[1] << ", '"
+		<< _article << "', '" 
+		<< _wiki << "', '"
+		<< _sid << "'); ";
 
 	Eigen::VectorXd v1 = es.eigenvectors().col(0);
 	Eigen::VectorXd v2 = es.eigenvectors().col(1);
@@ -57,12 +59,13 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 	map<string, unsigned int> m = mat->GetMatrixItems();
 	map<string, unsigned int>::iterator it;
 	for (it = m.begin(); it != m.end(); ++it) {
-		sql << "INSERT INTO eigenvector VALUES ('" << it->first
-			<< "', " << _article
-			<< ", " << v1.row(it->second)
-			<< ", " << v2.row(it->second)
-			<< ", '" << _sid
-			<< "'); ";
+		sql << "INSERT INTO eigenvector VALUES ('"
+		    << it->first << "', "
+		    << v1.row(it->second) << ", "
+		    << v2.row(it->second) << ", '" 
+		    << _article << "', '"
+		    << _wiki << "', '"
+		    << _sid << "'); ";
 	}
 	sql << "UPDATE evgen SET finished = 1 WHERE sid = '" << _sid << "'; SET SQL_SAFE_UPDATES = 1;";
 	string query = sql.str();
@@ -81,24 +84,27 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 //******************************************************************************************
 //int _tmain(int argc, wchar_t** argv) { //windows specific entry point
 int main(int argc, char* argv[]) {
-	if (argc < 3) {
-		cout << "Error: Please provide article id, session id and database connection details as arguments!" << endl << endl;
+	if (argc < 4) {
+		cout << "Error: Please provide article id, wiki name and session id as arguments!" << endl << endl;
 		return EXIT_FAILURE;
 	}
 	bool debugOutput = false;
-	if (argc > 3) {
+	if (argc > 4) {
 		debugOutput = true;
 	}
 	_article = argv[1];
-	_sid = argv[2];
+	_wiki = argv[2];
+	_sid = argv[3];
 
 	debugfile.open("evgendebug");
 
 	if (debugOutput) {
 		cout << "Article: " << _article << endl;
+		cout << "Wiki: " << _wiki << endl;
 		cout << "SID: " << _sid << endl;
-                debugfile << "Article: " << _article << endl;
-                debugfile << "SID: " << _sid << endl;
+        debugfile << "Article: " << _article << endl;
+        debugfile << "Wiki: " << _wiki << endl;
+        debugfile << "SID: " << _sid << endl;
 	}
 
 	MYSQL *connection, mysql;
@@ -109,8 +115,6 @@ int main(int argc, char* argv[]) {
 	mysql_options(&mysql, MYSQL_READ_DEFAULT_GROUP, "client");
 	connection = mysql_real_connect(&mysql, _dbhost, NULL, _dbpass, NULL, 0, NULL, CLIENT_MULTI_STATEMENTS);
 	if (!connection) {
-		//fprintf(stderr, "Failed to connect to database: Error: %s\n",
-		//	  mysql_error(&mysql));
 		cout << mysql_error(&mysql) << endl;
 		debugfile << mysql_error(&mysql) << endl;
 		return 1;
@@ -125,7 +129,7 @@ int main(int argc, char* argv[]) {
 
 	//define query
 	stringstream sql;
-	sql << "SELECT * FROM edge e WHERE article = " << _article << " AND sid = '" << _sid << "';";
+	sql << "SELECT * FROM edge e WHERE article = " << _article << " AND wiki = '" << _wiki << "' AND sid = '" << _sid << "';";
 	string ssql = sql.str();
 	int queryResult = mysql_query(connection, ssql.c_str());
 
