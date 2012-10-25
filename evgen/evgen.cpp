@@ -13,9 +13,10 @@
 const char *_article = "";
 const char *_wiki = "";
 const char *_sid = "";
-const char *_dbhost = "sql-s1-user";
-const char *_dbpass = "";
-const char *_dbname = "u_ant_revnet";
+const char *_dbhost = "localhost";
+const char *_dbuser = "root";
+const char *_dbpass = "pw";
+const char *_dbname = "revnet";
 
 ofstream debugfile;
 
@@ -112,8 +113,8 @@ int main(int argc, char* argv[]) {
 	AdjacencyMatrix *mat = new AdjacencyMatrix();
 
 	mysql_init(&mysql);
-	mysql_options(&mysql, MYSQL_READ_DEFAULT_GROUP, "client");
-	connection = mysql_real_connect(&mysql, _dbhost, NULL, _dbpass, NULL, 0, NULL, CLIENT_MULTI_STATEMENTS);
+	//mysql_options(&mysql, MYSQL_READ_DEFAULT_GROUP, "client");
+	connection = mysql_real_connect(&mysql, _dbhost, _dbuser, _dbpass, _dbname, 0, NULL, CLIENT_MULTI_STATEMENTS);
 	if (!connection) {
 		cout << mysql_error(&mysql) << endl;
 		debugfile << mysql_error(&mysql) << endl;

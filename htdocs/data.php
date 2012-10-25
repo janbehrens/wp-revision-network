@@ -252,10 +252,10 @@ function get_page_id($wiki, $article) {
     require("config.php");
     
     //read revision data from the wikipedia database
-    $dbserver = str_replace('_', '-', $wiki) . ".rrdb.toolserver.org";
+    //$dbserver = str_replace('_', '-', $wiki) . ".rrdb.toolserver.org";
     
-    $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
-    mysql_query("set names 'utf8';", $dbconn);
+    //$dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+    //mysql_query("set names 'utf8';", $dbconn);
     
     mysql_select_db($wiki, $dbconn);
     
@@ -270,7 +270,7 @@ function get_page_id($wiki, $article) {
 
     $_SESSION['page_id'] = $crow[0];
     
-    mysql_close($dbconn);
+    //mysql_close($dbconn);
     
     //error_log("finished reading wp");
 }
@@ -285,7 +285,8 @@ function main() {
 
     if (isset($_POST['load'])) {
         $article = $_POST['article'];
-        $wiki = $_POST['wiki'];
+        //$wiki = $_POST['wiki'];
+        $wiki = 'wikipedia';k
         
         get_page_id($wiki, $article);
         
