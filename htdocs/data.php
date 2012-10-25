@@ -3,12 +3,12 @@
 //******************************************************************************************
 //* executes the ev-gen tool to calculate the eigenvalues/eigenvectors
 //******************************************************************************************
-function execEvGen($page_id, $sid) {
+function execEvGen($page_id, $wiki, $sid) {
     //if (PHP_OS == 'Linux') {
-        $result = shell_exec("evgen-bin/evgen $page_id $sid debug");
+        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sid debug");
     //}
     //else {
-    //    $result = shell_exec("evgen-bin\\evgen.exe $page_id $sid");
+    //    $result = shell_exec("evgen-bin\\evgen.exe $page_id $wiki $sid");
     //}
     return $result;
 }
@@ -35,12 +35,12 @@ function getData($wiki) {
     //call edge calculation function 
 
     if ($ed == null) {
-        mysql_query("call getEdges($wiki, $page_id, '$sid', $dmax, null, null)", $dbconn);
+        mysql_query("call getEdges('$wiki', $page_id, '$sid', $dmax, null, null)", $dbconn);
     } else {
         //2006-03-31T22:00:00.000Z
         $sdf = $sd->format('Y-m-d');
         $edf = $ed->format('Y-m-d');
-        mysql_query("call getEdges($wiki, $page_id, '$sid', $dmax, '$sdf', '$edf')", $dbconn);
+        mysql_query("call getEdges('$wiki', $page_id, '$sid', $dmax, '$sdf', '$edf')", $dbconn);
     }
     
     //error_log("finished edge calculation");
@@ -48,7 +48,7 @@ function getData($wiki) {
     $result = false;
     
     //calculate eigenvectors
-    $result = execEvGen($page_id, $sid);
+    $result = execEvGen($page_id, $wiki, $sid);
 
 
     $positions = array();
@@ -150,17 +150,16 @@ function getLastElement($array) {
 //******************************************************************************************
 //* gets the timeline data
 //******************************************************************************************
-function getTimelineData() {
+function getTimelineData($wiki) {
     require("config.php");
     
     $page_id = $_SESSION['page_id'];
     
     $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
-    mysql_select_db($dbname, $dbconn);
-    mysql_query("set names 'utf8';", $dbconn);
-
-    //FIXME!
-    $sql = "SELECT year(timestamp) as y, month(timestamp) as m, count(*) as amount FROM entry WHERE article = $page_id GROUP BY year(timestamp), month(timestamp) ORDER BY timestamp";
+    //mysql_select_db($dbname, $dbconn);
+    //mysql_query("set names 'utf8';", $dbconn);
+    
+    $sql = "SELECT year(rev_timestamp) as y, month(rev_timestamp) as m, count(*) as amount FROM $wiki.revision WHERE rev_page = $page_id GROUP BY year(rev_timestamp), month(rev_timestamp) ORDER BY rev_timestamp";
     $rs = mysql_query($sql, $dbconn);
     $dates = array();
 
@@ -254,8 +253,8 @@ function get_page_id($wiki, $article) {
     //read revision data from the wikipedia database
     //$dbserver = str_replace('_', '-', $wiki) . ".rrdb.toolserver.org";
     
-    //$dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
-    //mysql_query("set names 'utf8';", $dbconn);
+    $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+    mysql_query("set names 'utf8';", $dbconn);
     
     mysql_select_db($wiki, $dbconn);
     
@@ -286,14 +285,17 @@ function main() {
     if (isset($_POST['load'])) {
         $article = $_POST['article'];
         //$wiki = $_POST['wiki'];
-        $wiki = 'wikipedia';k
+        $wiki = 'wikipedia';
         
         get_page_id($wiki, $article);
         
         getData($wiki);
     }
     else if (isset($_POST['timeline'])) {
-        getTimelineData();
+        //$wiki = $_POST['wiki'];
+        $wiki = 'wikipedia';
+        
+        getTimelineData($wiki);
     }
 }
 

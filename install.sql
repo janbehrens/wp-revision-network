@@ -5,7 +5,7 @@ CREATE TABLE `edge` (
   `article` integer NOT NULL,
   `wiki` char(50) NOT NULL,
   `sid` varchar(255) NOT NULL,
-  PRIMARY KEY (`article`,`wiki`)
+  PRIMARY KEY (`fromuser`, `touser`, `article`, `wiki`)
 );
 
 CREATE TABLE `weeklyedits` (
@@ -13,7 +13,7 @@ CREATE TABLE `weeklyedits` (
   `rsd` float NOT NULL COMMENT 'relative standard deviation of weekly edits',
   `article` integer NOT NULL,
   `wiki` char(50) NOT NULL,
-  PRIMARY KEY (`article`,`wiki`)
+  PRIMARY KEY (`user`, `article`, `wiki`)
 );
 
 CREATE TABLE `eigenvalue` (
@@ -22,7 +22,7 @@ CREATE TABLE `eigenvalue` (
   `article` integer NOT NULL,
   `wiki` char(50) NOT NULL,
   `sid` varchar(255) NOT NULL,
-  PRIMARY KEY (`article`,`wiki`)
+  PRIMARY KEY (`article`, `wiki`)
 );
 
 CREATE TABLE `eigenvector` (
@@ -32,7 +32,7 @@ CREATE TABLE `eigenvector` (
   `article` integer NOT NULL,
   `wiki` char(50) NOT NULL,
   `sid` varchar(255) NOT NULL,
-  PRIMARY KEY (`user`,`article`,`wiki`)
+  PRIMARY KEY (`user`, `article`, `wiki`)
 );
 
 CREATE TABLE `evgen` (
