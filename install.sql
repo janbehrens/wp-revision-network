@@ -4,14 +4,17 @@ CREATE TABLE `edge` (
   `weight` float NOT NULL,
   `timestamp` datetime NOT NULL,
   `article` integer NOT NULL,
-  `wiki` char(50) NOT NULL
+  `wiki` char(50) NOT NULL,
+  `dmax` int NOT NULL,
+  `lastupdate` timestamp NOT NULL
 );
 
 CREATE TABLE `weeklyedits` (
   `user` varchar(255) NOT NULL,
   `rsd` float NOT NULL COMMENT 'relative standard deviation of weekly edits',
   `article` integer NOT NULL,
-  `wiki` char(50) NOT NULL
+  `wiki` char(50) NOT NULL,
+  `lastupdate` timestamp NOT NULL
 );
 
 CREATE TABLE `eigenvalue` (
@@ -92,8 +95,8 @@ BEGIN
     
     SET SQL_SAFE_UPDATES = 0;
     
-    DELETE FROM edge WHERE article = art AND edge.wiki = wiki;
-    DELETE FROM weeklyedits WHERE article = art AND weeklyedits.wiki = wiki;
+    DELETE FROM edge WHERE DATEDIFF(NOW(), lastupdate) < 7;
+    DELETE FROM weeklyedits WHERE DATEDIFF(NOW(), lastupdate) < 7;
     
     CREATE TEMPORARY TABLE IF NOT EXISTS sigma (user varchar(255), edits int, sum int, sumsqr int, PRIMARY KEY (`user`));
     
@@ -122,7 +125,7 @@ BEGIN
             END IF;
             
             IF wdt <> 0 THEN
-                INSERT INTO edge VALUES (currentUser, lastUser, wdt, currentTimestamp, art, wiki);
+                INSERT INTO edge VALUES (currentUser, lastUser, wdt, currentTimestamp, art, wiki, dmax, NOW());
             END IF;
         END IF;
         
@@ -161,7 +164,7 @@ BEGIN
             SET weeklyVariance = (currentSumSqr - currentSum * weeklyMean) / weekCount;
             
             IF weeklyMean > 0 THEN
-                INSERT INTO weeklyedits VALUES (currentUser, SQRT(weeklyVariance)/weeklyMean, art, wiki);
+                INSERT INTO weeklyedits VALUES (currentUser, SQRT(weeklyVariance)/weeklyMean, art, wiki, NOW());
             END IF;
         END IF;
     END LOOP;

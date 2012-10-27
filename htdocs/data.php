@@ -37,7 +37,17 @@ function getData($wiki) {
     }
     else {
         $sdf = $edf = 0;
-        mysql_query("call getEdges('$wiki', $page_id, $dmax)", $dbconn);
+        
+        //check if recent revision edge data is available
+        
+        $sql = "SELECT article FROM edge WHERE article = $page_id AND wiki = '$wiki' AND dmax = $dmax";
+        $rs = mysql_query($sql, $dbconn);
+        $crow = mysql_fetch_row($rs);
+        
+        //if not, calculate revision edges
+        if (!$crow) {
+            mysql_query("call getEdges('$wiki', $page_id, $dmax)", $dbconn);
+        }
     }
     
     //calculate eigenvectors
@@ -55,7 +65,7 @@ function getData($wiki) {
     }
 
     //check if edges are available
-    $sql = "SELECT count(*) FROM edge WHERE $whereclause_edge";
+    $sql = "SELECT count(*) FROM edge WHERE $whereclause_edge AND dmax = $dmax";
     $rs = mysql_query($sql, $dbconn);
     $crow = mysql_fetch_row($rs);
     if ($crow[0] > 0) {
@@ -79,14 +89,14 @@ function getData($wiki) {
             $user['in'] = 0;
             $user['revised'] = array();
         
-            $sql = "SELECT SUM(weight), touser FROM edge WHERE fromuser = '$crow[0]' AND $whereclause GROUP BY touser";
+            $sql = "SELECT SUM(weight), touser FROM edge WHERE fromuser = '$crow[0]' AND $whereclause AND dmax = $dmax GROUP BY touser";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['out'] += $crow_1[0];
                 $user['revised'][$crow_1[1]] = (float) $crow_1[0];
             }
 
-            $sql = "SELECT SUM(weight) FROM edge WHERE touser = '$crow[0]' AND $whereclause";
+            $sql = "SELECT SUM(weight) FROM edge WHERE touser = '$crow[0]' AND $whereclause AND dmax = $dmax";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['in'] += $crow_1[0];
