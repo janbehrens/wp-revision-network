@@ -13,8 +13,8 @@
 const char *_article = "";
 const char *_wiki = "";
 const char *_sid = "";
-int _sd = 0;
-int _ed = 0;
+const char *_sd = 0;
+const char *_ed = 0;
 const char *_dbhost = "localhost";
 const char *_dbuser = "root";
 const char *_dbpass = "pw";
@@ -46,9 +46,11 @@ string to_string(T const& value) {
 //******************************************************************************************
 int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd> es, AdjacencyMatrix *mat) {
 	stringstream sql;
-	sql << "SET SQL_SAFE_UPDATES = 0; DELETE FROM evgen WHERE sid = '" << _sid << "'; INSERT INTO evgen VALUES ('" << _sid << "', 0); "
-		<< "DELETE FROM eigenvector WHERE article = " << _article << " AND wiki = '" << _wiki << "' AND sid = '" << _sid << "'; "
-		<< "DELETE FROM eigenvalue WHERE article = " << _article << " AND wiki = '" << _wiki << "' AND sid = '" << _sid << "'; "
+	sql << "SET SQL_SAFE_UPDATES = 0; "
+		<< "DELETE FROM evgen WHERE sid = '" << _sid << "'; "
+		<< "INSERT INTO evgen VALUES ('" << _sid << "', 0); "
+		<< "DELETE FROM eigenvector WHERE sid = '" << _sid << "'; "
+		<< "DELETE FROM eigenvalue WHERE sid = '" << _sid << "'; "
 		<< "INSERT INTO eigenvalue (lambda1, lambda2, article, wiki, sid) VALUES (" 
 		<< es.eigenvalues()[0] << ", "
 		<< es.eigenvalues()[1] << ", "
@@ -70,7 +72,8 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 		    << _wiki << "', '"
 		    << _sid << "'); ";
 	}
-	sql << "UPDATE evgen SET finished = 1 WHERE sid = '" << _sid << "'; SET SQL_SAFE_UPDATES = 1;";
+	sql << "UPDATE evgen SET finished = 1 WHERE sid = '" << _sid << "'; "
+		<< "SET SQL_SAFE_UPDATES = 1;";
 	string query = sql.str();
 
 	//debugfile << query << endl;
@@ -94,7 +97,7 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 //int _tmain(int argc, wchar_t** argv) { //windows specific entry point
 int main(int argc, char* argv[]) {
 	if (argc < 6) {
-		cout << "Error: Please provide article id, wiki name and session id as arguments!" << endl << endl;
+		cout << "Error: Please provide article id, wiki name, start date, end date and session id as arguments!" << endl << endl;
 		return EXIT_FAILURE;
 	}
 	bool debugOutput = false;
@@ -103,9 +106,9 @@ int main(int argc, char* argv[]) {
 	}
 	_article = argv[1];
 	_wiki = argv[2];
-	_sid = argv[3];
-	_sd = atoi(argv[4]);
-	_ed = atoi(argv[5]);
+	_sd = argv[3];
+	_ed = argv[4];
+	_sid = argv[5];
 
 	debugfile.open("evgendebug");
 
@@ -143,11 +146,10 @@ int main(int argc, char* argv[]) {
 	//define query
 	stringstream sql;
 	sql << "SELECT fromuser, touser, SUM(weight) FROM edge "
-			<< "WHERE article = " << _article << " AND wiki = '" << _wiki << "' AND sid = '" << _sid << "' ";
-	if (_ed > 0) sql << "AND timestamp > " << _sd << " AND timestamp < " << _ed;
+			<< "WHERE article = " << _article << " AND wiki = '" << _wiki << "' ";
+	if (strcmp(_ed, "0") != 0) sql << "AND timestamp > " << _sd << " AND timestamp < " << _ed;
 	sql << " GROUP BY fromuser, touser;";
 	string ssql = sql.str();
-	debugfile << ssql << endl;
 	int queryResult = mysql_query(connection, ssql.c_str());
 
 	//generate data
@@ -157,7 +159,6 @@ int main(int argc, char* argv[]) {
 		
 		while ((row = mysql_fetch_row(result)) != NULL) {
 			mat->Add(row[0], row[1], atof(row[2]));
-			debugfile << row[0] << endl;
 		}
 		mysql_free_result(result);
 	}
@@ -193,6 +194,25 @@ int main(int argc, char* argv[]) {
 	if (es.eigenvalues().count() > 0) {
 		storeEigenvectorsX(connection, es, mat);
 		cout << mat->GetCount() << endl;
+
+		// make sure that the script does not finish before all data is inserted
+		sql.str("");
+		sql << "SELECT finished FROM evgen WHERE sid = '" << _sid << "'";
+		string ssql = sql.str();
+		int queryResult = mysql_query(connection, ssql.c_str());
+
+		if (queryResult == 0) {
+			MYSQL_ROW row;
+
+			while (1) {
+				result = mysql_store_result(connection);
+
+				while ((row = mysql_fetch_row(result)) != NULL) {
+					if (row[1] != 0) break;
+				}
+				mysql_free_result(result);
+			}
+		}
 	} else {
 		if (debugOutput) {
 			cout << "No valid Eigenvectors found!\nAborting ... " << endl;

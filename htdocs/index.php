@@ -31,7 +31,7 @@
 
 	    //$dbserver = $dbnametoolserver . ".userdb.toolserver.org";
 
-        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+        /*$dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
         mysql_select_db($dbnametoolserver, $dbconn);
         
         //$sql = "SELECT w.dbname, l.english_name FROM wiki w JOIN language l ON w.lang = l.lang WHERE family = 'wikipedia' ORDER BY l.english_name";
@@ -39,7 +39,7 @@
         $rs = mysql_query($sql, $dbconn);
         while ($crow = mysql_fetch_row($rs)) {
             echo "<option value=\"$crow[0]\">" . substr($crow[0], 0, count($crow[0]) - 3) . "</option>\n";
-        }
+        }*/
         echo "</select>";
     }
 

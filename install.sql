@@ -4,16 +4,14 @@ CREATE TABLE `edge` (
   `weight` float NOT NULL,
   `timestamp` datetime NOT NULL,
   `article` integer NOT NULL,
-  `wiki` char(50) NOT NULL,
-  `sid` varchar(255) NOT NULL
+  `wiki` char(50) NOT NULL
 );
 
 CREATE TABLE `weeklyedits` (
   `user` varchar(255) NOT NULL,
   `rsd` float NOT NULL COMMENT 'relative standard deviation of weekly edits',
   `article` integer NOT NULL,
-  `wiki` char(50) NOT NULL,
-  `sid` varchar(255) NOT NULL
+  `wiki` char(50) NOT NULL
 );
 
 CREATE TABLE `eigenvalue` (
@@ -66,7 +64,7 @@ BEGIN
   DEALLOCATE PREPARE Stmt;
 END$$
 
-CREATE PROCEDURE `proc2`(wiki char(50), art integer, sid varchar(255), dmax int)
+CREATE PROCEDURE `proc2`(wiki char(50), art integer, dmax int)
 BEGIN
     DECLARE currentUser varchar(255);
     DECLARE lastUser varchar(255);
@@ -94,8 +92,8 @@ BEGIN
     
     SET SQL_SAFE_UPDATES = 0;
     
-    DELETE FROM edge WHERE edge.sid = sid AND article = art AND edge.wiki = wiki;
-    DELETE FROM weeklyedits WHERE weeklyedits.sid = sid AND article = art AND weeklyedits.wiki = wiki;
+    DELETE FROM edge WHERE article = art AND edge.wiki = wiki;
+    DELETE FROM weeklyedits WHERE article = art AND weeklyedits.wiki = wiki;
     
     CREATE TEMPORARY TABLE IF NOT EXISTS sigma (user varchar(255), edits int, sum int, sumsqr int, PRIMARY KEY (`user`));
     
@@ -123,18 +121,9 @@ BEGIN
                 SET wdt = 0;
             END IF;
             
-            #SELECT count(*) INTO @w FROM edge WHERE fromuser = currentUser AND touser = lastUser
-            #AND article = art AND edge.wiki = wiki AND edge.sid = sid;
-            #IF @w > 0 THEN
-            #    UPDATE edge
-            #    SET weight = (weight + wdt)
-            #    WHERE fromuser = currentUser AND touser = lastUser
-            #    AND article = art AND edge.wiki = wiki AND edge.sid = sid;
-            #ELSE
-                IF wdt <> 0 THEN
-                    INSERT INTO edge VALUES (currentUser, lastUser, wdt, currentTimestamp, art, wiki, sid);
-                END IF;
-            #END IF;
+            IF wdt <> 0 THEN
+                INSERT INTO edge VALUES (currentUser, lastUser, wdt, currentTimestamp, art, wiki);
+            END IF;
         END IF;
         
         UPDATE sigma SET edits = edits + 1 WHERE user = currentUser;
@@ -172,7 +161,7 @@ BEGIN
             SET weeklyVariance = (currentSumSqr - currentSum * weeklyMean) / weekCount;
             
             IF weeklyMean > 0 THEN
-                INSERT INTO weeklyedits VALUES (currentUser, SQRT(weeklyVariance)/weeklyMean, art, wiki, sid);
+                INSERT INTO weeklyedits VALUES (currentUser, SQRT(weeklyVariance)/weeklyMean, art, wiki);
             END IF;
         END IF;
     END LOOP;
@@ -181,9 +170,9 @@ BEGIN
     SET SQL_SAFE_UPDATES = 1;
 END$$
 
-CREATE PROCEDURE `getEdges`(wiki char(50), art integer, sid varchar(255), dmax int)
+CREATE PROCEDURE `getEdges`(wiki char(50), art integer, dmax int)
 BEGIN
   CALL proc1(wiki, art);
-  CALL proc2(wiki, art, sid, dmax);
+  CALL proc2(wiki, art, dmax);
 END$$
 

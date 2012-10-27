@@ -5,13 +5,11 @@
 //******************************************************************************************
 function execEvGen($page_id, $wiki, $sid, $sd, $ed) {
     //if (PHP_OS == 'Linux') {
-        //error_log("evgen-bin/evgen $page_id $wiki $sid $sd $ed debug");
-        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sid $sd $ed debug");
+        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sd $ed $sid debug");
     //}
     //else {
-    //    $result = shell_exec("evgen-bin\\evgen.exe $page_id $wiki $sid $sd $ed");
+    //    $result = shell_exec("evgen-bin\\evgen.exe $page_id $wiki $sd $ed $sid");
     //}
-    return $result;
 }
 
 //******************************************************************************************
@@ -33,46 +31,42 @@ function getData($wiki) {
     $dmax = $_POST['dmax'];
     
     if ($ed != null) {
-        //2006-03-31T22:00:00.000Z
-        $sdf = $sd->format('Y-m-d');
-        $edf = $ed->format('Y-m-d');
+        //20060331220000
+        $sdf = $sd->format('YmdHis');
+        $edf = $ed->format('YmdHis');
     }
-
-    //call edge calculation function 
-    if ($ed == null) {
-        $sd = 0;
-        $ed = 0;
-        mysql_query("call getEdges('$wiki', $page_id, '$sid', $dmax)", $dbconn);
+    else {
+        $sdf = $edf = 0;
+        mysql_query("call getEdges('$wiki', $page_id, $dmax)", $dbconn);
     }
     
-    //calculate eigenvectors    TODO: consider timestamp in evgen
-    $result = false;
-    $result = execEvGen($page_id, $wiki, $sid, $sd, $ed);
+    //calculate eigenvectors
+    execEvGen($page_id, $wiki, $sid, $sdf, $edf);
 
     $positions = array();
     $s = 0;
     $rsdmin = PHP_INT_MAX;
     $rsdmax = 0;
     
-    $whereclause = "article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
+    $whereclause_edge = $whereclause = "article = $page_id AND wiki = '$wiki'";
     
     if ($ed != null) {
-        $whereclause .= " AND timestamp > $sd AND timestamp < $ed";
+        $whereclause_edge .= " AND timestamp > $sdf AND timestamp < $edf";
     }
 
     //check if edges are available
-    $sql = "SELECT count(*) FROM edge WHERE " . $whereclause;
+    $sql = "SELECT count(*) FROM edge WHERE $whereclause_edge";
     $rs = mysql_query($sql, $dbconn);
     $crow = mysql_fetch_row($rs);
     if ($crow[0] > 0) {
         //get eigenvalue and calculate skewness
-        $sql = "SELECT lambda1, lambda2 FROM eigenvalue WHERE " . $whereclause;
+        $sql = "SELECT lambda1, lambda2 FROM eigenvalue WHERE $whereclause AND sid = '$sid'";
         $rs = mysql_query($sql, $dbconn);
         $crow = mysql_fetch_row($rs);
         $s = ($crow[0] == 0) ? 0 : $crow[1]/$crow[0];
 
         //get author's positions and extra data
-        $sql = "SELECT user, v1, v2 FROM eigenvector WHERE " . $whereclause;
+        $sql = "SELECT user, v1, v2 FROM eigenvector WHERE $whereclause AND sid = '$sid'";
         $rs = mysql_query($sql, $dbconn);
         while ($crow = mysql_fetch_row($rs)) {
             $user = array();
@@ -85,14 +79,14 @@ function getData($wiki) {
             $user['in'] = 0;
             $user['revised'] = array();
         
-            $sql = "SELECT SUM(weight), touser FROM edge WHERE fromuser = '$crow[0]' AND " . $whereclause . " GROUP BY touser";
+            $sql = "SELECT SUM(weight), touser FROM edge WHERE fromuser = '$crow[0]' AND $whereclause GROUP BY touser";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['out'] += $crow_1[0];
                 $user['revised'][$crow_1[1]] = (float) $crow_1[0];
             }
 
-            $sql = "SELECT SUM(weight) FROM edge WHERE touser = '$crow[0]' AND " . $whereclause;
+            $sql = "SELECT SUM(weight) FROM edge WHERE touser = '$crow[0]' AND $whereclause";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['in'] += $crow_1[0];
@@ -100,7 +94,7 @@ function getData($wiki) {
             
             //get relative standard deviation
             $user['rsd'] = 0;
-            $sql = "SELECT rsd FROM weeklyedits WHERE article = $page_id AND wiki = '$wiki' AND user = '$crow[0]'";
+            $sql = "SELECT rsd FROM weeklyedits WHERE user = '$crow[0]' AND $whereclause";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['rsd'] = $crow_1[0];
@@ -248,9 +242,15 @@ function getDateBy($name) {
         return null;
     } else {
         return new DateTime(date('d-m-Y', strtotime($_POST[$name])));
+        /*$time = strtotime($_POST[$name]);
+        error_log($time);
+        return $time;*/
     }
 }
 
+//******************************************************************************************
+// returns the page id for a given article
+//******************************************************************************************
 function get_page_id($wiki, $article) {
     require("config.php");
     
