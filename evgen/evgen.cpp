@@ -13,8 +13,8 @@
 const char *_article = "";
 const char *_wiki = "";
 const char *_sid = "";
-const char *_sd = 0;
-const char *_ed = 0;
+const char *_sd = "";
+const char *_ed = "";
 const char *_dbhost = "localhost";
 const char *_dbuser = "root";
 const char *_dbpass = "pw";
@@ -28,7 +28,7 @@ typedef pair<double, int> evItem;
 //* Comparator for sorting the eigenvalues
 //******************************************************************************************
 bool comparator(const evItem& l, const evItem& r) { 
-	return l.first < r.first; 
+	return l.first < r.first;
 }
 
 //******************************************************************************************
@@ -36,9 +36,9 @@ bool comparator(const evItem& l, const evItem& r) {
 //******************************************************************************************
 template <typename T>
 string to_string(T const& value) {
-    stringstream sstr;
-    sstr << value;
-    return sstr.str();
+	stringstream sstr;
+	sstr << value;
+	return sstr.str();
 }
 
 //******************************************************************************************
@@ -51,7 +51,7 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 		<< "INSERT INTO evgen VALUES ('" << _sid << "', 0); "
 		<< "DELETE FROM eigenvector WHERE sid = '" << _sid << "'; "
 		<< "DELETE FROM eigenvalue WHERE sid = '" << _sid << "'; "
-		<< "INSERT INTO eigenvalue (lambda1, lambda2, article, wiki, sid) VALUES (" 
+		<< "INSERT INTO eigenvalue (lambda1, lambda2, article, wiki, sid) VALUES ("
 		<< es.eigenvalues()[0] << ", "
 		<< es.eigenvalues()[1] << ", "
 		<< _article << ", '"
@@ -60,33 +60,31 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 
 	Eigen::VectorXd v1 = es.eigenvectors().col(0);
 	Eigen::VectorXd v2 = es.eigenvectors().col(1);
-	
+
 	map<string, unsigned int> m = mat->GetMatrixItems();
 	map<string, unsigned int>::iterator it;
 	for (it = m.begin(); it != m.end(); ++it) {
 		sql << "INSERT INTO eigenvector VALUES ('"
-		    << it->first << "', "
-		    << v1.row(it->second) << ", "
-		    << v2.row(it->second) << ", "
-		    << _article << ", '"
-		    << _wiki << "', '"
-		    << _sid << "'); ";
+			<< it->first << "', "
+			<< v1.row(it->second) << ", "
+			<< v2.row(it->second) << ", "
+			<< _article << ", '"
+			<< _wiki << "', '"
+			<< _sid << "'); ";
 	}
 	sql << "UPDATE evgen SET finished = 1 WHERE sid = '" << _sid << "'; "
 		<< "SET SQL_SAFE_UPDATES = 1;";
 	string query = sql.str();
-
-	//debugfile << query << endl;
 
 	int val = mysql_query(connection, query.c_str());
 	if (val == 0) {
 		MYSQL_RES *res = mysql_store_result(connection);
 		mysql_free_result(res);
 	}
-        else {
-			cout << "Error: " << mysql_error(connection) << endl;
-			debugfile << "Error: " << mysql_error(connection) << endl;
-        }
+	else {
+		cout << "Error: " << mysql_error(connection) << endl;
+		debugfile << "Error: " << mysql_error(connection) << endl;
+	}
 
 	return val;
 }
@@ -116,11 +114,13 @@ int main(int argc, char* argv[]) {
 		cout << "Article: " << _article << endl;
 		cout << "Wiki: " << _wiki << endl;
 		cout << "SID: " << _sid << endl;
-        debugfile << "Article: " << _article << endl;
-        debugfile << "Wiki: " << _wiki << endl;
-        debugfile << "SID: " << _sid << endl;
-        debugfile << "start date: " << _sd << endl;
-        debugfile << "end date: " << _ed << endl;
+		cout << "start date: " << _sd << endl;
+		cout << "end date: " << _ed << endl;
+		debugfile << "Article: " << _article << endl;
+		debugfile << "Wiki: " << _wiki << endl;
+		debugfile << "SID: " << _sid << endl;
+		debugfile << "start date: " << _sd << endl;
+		debugfile << "end date: " << _ed << endl;
 	}
 
 	MYSQL *connection, mysql;
@@ -146,8 +146,10 @@ int main(int argc, char* argv[]) {
 	//define query
 	stringstream sql;
 	sql << "SELECT fromuser, touser, SUM(weight) FROM edge "
-			<< "WHERE article = " << _article << " AND wiki = '" << _wiki << "' ";
-	if (strcmp(_ed, "0") != 0) sql << "AND timestamp > " << _sd << " AND timestamp < " << _ed;
+		<< "WHERE article = " << _article << " AND wiki = '" << _wiki << "' ";
+	if (strcmp(_ed, "0") != 0) {
+		sql << "AND timestamp > " << _sd << " AND timestamp < " << _ed;
+	}
 	sql << " GROUP BY fromuser, touser;";
 	string ssql = sql.str();
 	int queryResult = mysql_query(connection, ssql.c_str());
@@ -156,7 +158,7 @@ int main(int argc, char* argv[]) {
 	if (queryResult == 0) {
 		MYSQL_ROW row;
 		result = mysql_store_result(connection);
-		
+
 		while ((row = mysql_fetch_row(result)) != NULL) {
 			mat->Add(row[0], row[1], atof(row[2]));
 		}
@@ -182,7 +184,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	Eigen::SelfAdjointEigenSolver<MatrixXd> es(am);
-	
+
 	if (debugOutput) {
 		cout << "Eigen-l1: " << es.eigenvalues()[0];
 		cout << endl;
@@ -220,7 +222,7 @@ int main(int argc, char* argv[]) {
 			cout << 0 << endl;
 		}
 	}
-	
+
 	if (debugOutput) {
 		mat->DebugTable("test.html");
 	}

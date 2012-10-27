@@ -131,8 +131,8 @@ Vis.Drawing = {
         
         var width = text.length * 8;    //could be determined from the font size as well...
         var height = 18;
-        var left = Vis.WebGL.Canvas.Left + Vis.WebGL.Canvas.Width * xyOffset.x/2 + xyExtent.x/2 * Vis.WebGL.Canvas.Width/2 * (1 + localpos.x) - width/2;
-        var top = Vis.WebGL.Canvas.Top + Vis.WebGL.Canvas.Height * xyOffset.y/2 + xyExtent.y/2 * Vis.WebGL.Canvas.Height/2 * (1 - localpos.y) - height/2;
+        var left = Vis.WebGL.Canvas.Width * xyOffset.x/2 + xyExtent.x/2 * Vis.WebGL.Canvas.Width/2 * (1 + localpos.x) - width/2;
+        var top = Vis.WebGL.Canvas.Height * xyOffset.y/2 + xyExtent.y/2 * Vis.WebGL.Canvas.Height/2 * (1 - localpos.y) - height/2;
         
         if (placement) { left += localpos.x < 0 ? -width/2 : width/2; }
         if (placement) { top -= localpos.y < 0 ? -height/2 : height/2; }
@@ -147,7 +147,7 @@ Vis.Drawing = {
         
         textdiv.innerHTML = text;
         
-        document.body.appendChild(textdiv);
+        $('textlayer').appendChild(textdiv);
     },
     ColorToHex : function(color) {
         hex = [];

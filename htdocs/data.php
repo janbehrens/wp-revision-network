@@ -39,7 +39,6 @@ function getData($wiki) {
         $sdf = $edf = 0;
         
         //check if recent revision edge data is available
-        
         $sql = "SELECT article FROM edge WHERE article = $page_id AND wiki = '$wiki' AND dmax = $dmax";
         $rs = mysql_query($sql, $dbconn);
         $crow = mysql_fetch_row($rs);

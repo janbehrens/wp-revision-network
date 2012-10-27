@@ -11,6 +11,9 @@ Vis = {
             alert("Please choose an article first!");
             return;
         }
+        
+        $('welcome-screen').hide();
+        $('vis-container').hide();
 
         var noData = false;
 
@@ -46,7 +49,7 @@ Vis = {
 				        var tlres = transport.responseText.evalJSON();
 
                         $('welcome-screen').hide();
-                        $('vis-canvas').show();
+                        $('vis-container').show();
 
                         Vis.WebGL.Init(res.positions, res.skewness, res.rsdmin, res.rsdmax, tlres);
                         Vis.ToggleLoading(true);
@@ -56,14 +59,14 @@ Vis = {
 			        },
 			        onFailure       : function(transport) {
                         Vis.ToggleLoading(true);
-				        alert("Loading failed!\nPossible reason: " + transport.responseText);
+				        alert("Loading failed!\n" + transport.responseText);
 			        }
 		        });
                 
 			},
 			onFailure       : function(transport) {
                 Vis.ToggleLoading(true);
-				alert("Loading failed!\nPossible reason: " + transport.responseText);
+				alert("Loading failed!\n" + transport.responseText);
 			}
 		});
     },
@@ -191,13 +194,15 @@ Vis.WebGL.Canvas = {
         canvas.absolutize();
 
         //now store the relative values
-        this.Left = canvas.getLayout().get('left');
-        this.Top = canvas.getLayout().get('top');
+        this.Left = canvas.parentNode.getLayout().get('left');
+        this.Top = canvas.parentNode.getLayout().get('top');
+        //alert(this.Left + ", " + this.Top);
     },
     //******************************************************************************************
     //* @PUBLIC: Takes absolute page coordinates and returns localized coordinates
     //******************************************************************************************
     GetLocalizedPosition : function(x, y) {
+        //alert(x + ", " + y);
         var coords = {
             x : 0,
             y : 0
@@ -207,6 +212,7 @@ Vis.WebGL.Canvas = {
             coords.x = (x - this.Left) / this.Width * 2 - 1;
             coords.y = 1 - (y - this.Top) / this.Height * 2;
         }
+        //alert(x + ", " + y + "\n" + coords.x + ", " + coords.y);
 
         return coords;
     }
@@ -217,7 +223,7 @@ Vis.WebGL.Canvas = {
 //******************************************************************************************
 Vis.WebGL.Canvas.Events = {
     _pressed    : false,
-    _minY       : 560,      //minimum y which has to be reached
+    _minY       : 520,      //minimum y which has to be reached
     //******************************************************************************************
     //* Mouse button has been pressed
     //******************************************************************************************
