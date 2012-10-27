@@ -13,6 +13,8 @@
 const char *_article = "";
 const char *_wiki = "";
 const char *_sid = "";
+int _sd = 0;
+int _ed = 0;
 const char *_dbhost = "localhost";
 const char *_dbuser = "root";
 const char *_dbpass = "pw";
@@ -49,8 +51,8 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 		<< "DELETE FROM eigenvalue WHERE article = " << _article << " AND wiki = '" << _wiki << "' AND sid = '" << _sid << "'; "
 		<< "INSERT INTO eigenvalue (lambda1, lambda2, article, wiki, sid) VALUES (" 
 		<< es.eigenvalues()[0] << ", "
-		<< es.eigenvalues()[1] << ", '"
-		<< _article << "', '" 
+		<< es.eigenvalues()[1] << ", "
+		<< _article << ", '"
 		<< _wiki << "', '"
 		<< _sid << "'); ";
 
@@ -63,19 +65,25 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 		sql << "INSERT INTO eigenvector VALUES ('"
 		    << it->first << "', "
 		    << v1.row(it->second) << ", "
-		    << v2.row(it->second) << ", '" 
-		    << _article << "', '"
+		    << v2.row(it->second) << ", "
+		    << _article << ", '"
 		    << _wiki << "', '"
 		    << _sid << "'); ";
 	}
 	sql << "UPDATE evgen SET finished = 1 WHERE sid = '" << _sid << "'; SET SQL_SAFE_UPDATES = 1;";
 	string query = sql.str();
 
+	//debugfile << query << endl;
+
 	int val = mysql_query(connection, query.c_str());
 	if (val == 0) {
 		MYSQL_RES *res = mysql_store_result(connection);
 		mysql_free_result(res);
 	}
+        else {
+			cout << "Error: " << mysql_error(connection) << endl;
+			debugfile << "Error: " << mysql_error(connection) << endl;
+        }
 
 	return val;
 }
@@ -85,17 +93,19 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 //******************************************************************************************
 //int _tmain(int argc, wchar_t** argv) { //windows specific entry point
 int main(int argc, char* argv[]) {
-	if (argc < 4) {
+	if (argc < 6) {
 		cout << "Error: Please provide article id, wiki name and session id as arguments!" << endl << endl;
 		return EXIT_FAILURE;
 	}
 	bool debugOutput = false;
-	if (argc > 4) {
+	if (argc > 6) {
 		debugOutput = true;
 	}
 	_article = argv[1];
 	_wiki = argv[2];
 	_sid = argv[3];
+	_sd = atoi(argv[4]);
+	_ed = atoi(argv[5]);
 
 	debugfile.open("evgendebug");
 
@@ -106,6 +116,8 @@ int main(int argc, char* argv[]) {
         debugfile << "Article: " << _article << endl;
         debugfile << "Wiki: " << _wiki << endl;
         debugfile << "SID: " << _sid << endl;
+        debugfile << "start date: " << _sd << endl;
+        debugfile << "end date: " << _ed << endl;
 	}
 
 	MYSQL *connection, mysql;
@@ -130,8 +142,12 @@ int main(int argc, char* argv[]) {
 
 	//define query
 	stringstream sql;
-	sql << "SELECT * FROM edge e WHERE article = " << _article << " AND wiki = '" << _wiki << "' AND sid = '" << _sid << "';";
+	sql << "SELECT fromuser, touser, SUM(weight) FROM edge "
+			<< "WHERE article = " << _article << " AND wiki = '" << _wiki << "' AND sid = '" << _sid << "' ";
+	if (_ed > 0) sql << "AND timestamp > " << _sd << " AND timestamp < " << _ed;
+	sql << " GROUP BY fromuser, touser;";
 	string ssql = sql.str();
+	debugfile << ssql << endl;
 	int queryResult = mysql_query(connection, ssql.c_str());
 
 	//generate data
@@ -141,13 +157,18 @@ int main(int argc, char* argv[]) {
 		
 		while ((row = mysql_fetch_row(result)) != NULL) {
 			mat->Add(row[0], row[1], atof(row[2]));
+			debugfile << row[0] << endl;
 		}
 		mysql_free_result(result);
 	}
-	else cout << "Error: " << mysql_error(&mysql) << endl;
+	else {
+		cout << "Error: " << mysql_error(&mysql) << endl;
+		debugfile << "Error: " << mysql_error(&mysql) << endl;
+	}
 
 	if (debugOutput) {
 		cout << "Items: " << mat->GetCount() << endl;
+		debugfile << "Items: " << mat->GetCount() << endl;
 	}
 
 	MatrixXd am = mat->GetAdjacencyMatrixXd();

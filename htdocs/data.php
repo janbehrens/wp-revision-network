@@ -3,12 +3,13 @@
 //******************************************************************************************
 //* executes the ev-gen tool to calculate the eigenvalues/eigenvectors
 //******************************************************************************************
-function execEvGen($page_id, $wiki, $sid) {
+function execEvGen($page_id, $wiki, $sid, $sd, $ed) {
     //if (PHP_OS == 'Linux') {
-        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sid debug");
+        //error_log("evgen-bin/evgen $page_id $wiki $sid $sd $ed debug");
+        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sid $sd $ed debug");
     //}
     //else {
-    //    $result = shell_exec("evgen-bin\\evgen.exe $page_id $wiki $sid");
+    //    $result = shell_exec("evgen-bin\\evgen.exe $page_id $wiki $sid $sd $ed");
     //}
     return $result;
 }
@@ -26,49 +27,52 @@ function getData($wiki) {
     $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
     mysql_select_db($dbname, $dbconn);
     mysql_query("set names 'utf8';", $dbconn);
-
-    //calculate weights
+    
     $sd = getDateBy('sd');
     $ed = getDateBy('ed');
     $dmax = $_POST['dmax'];
     
-    //call edge calculation function 
-
-    if ($ed == null) {
-        mysql_query("call getEdges('$wiki', $page_id, '$sid', $dmax, null, null)", $dbconn);
-    } else {
+    if ($ed != null) {
         //2006-03-31T22:00:00.000Z
         $sdf = $sd->format('Y-m-d');
         $edf = $ed->format('Y-m-d');
-        mysql_query("call getEdges('$wiki', $page_id, '$sid', $dmax, '$sdf', '$edf')", $dbconn);
+    }
+
+    //call edge calculation function 
+    if ($ed == null) {
+        $sd = 0;
+        $ed = 0;
+        mysql_query("call getEdges('$wiki', $page_id, '$sid', $dmax)", $dbconn);
     }
     
-    //error_log("finished edge calculation");
-
+    //calculate eigenvectors    TODO: consider timestamp in evgen
     $result = false;
-    
-    //calculate eigenvectors
-    $result = execEvGen($page_id, $wiki, $sid);
-
+    $result = execEvGen($page_id, $wiki, $sid, $sd, $ed);
 
     $positions = array();
     $s = 0;
     $rsdmin = PHP_INT_MAX;
     $rsdmax = 0;
+    
+    $whereclause = "article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
+    
+    if ($ed != null) {
+        $whereclause .= " AND timestamp > $sd AND timestamp < $ed";
+    }
 
     //check if edges are available
-    $sql = "SELECT count(*) FROM edge WHERE article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
+    $sql = "SELECT count(*) FROM edge WHERE " . $whereclause;
     $rs = mysql_query($sql, $dbconn);
     $crow = mysql_fetch_row($rs);
     if ($crow[0] > 0) {
         //get eigenvalue and calculate skewness
-        $sql = "SELECT lambda1, lambda2 FROM eigenvalue WHERE article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
+        $sql = "SELECT lambda1, lambda2 FROM eigenvalue WHERE " . $whereclause;
         $rs = mysql_query($sql, $dbconn);
         $crow = mysql_fetch_row($rs);
         $s = ($crow[0] == 0) ? 0 : $crow[1]/$crow[0];
 
         //get author's positions and extra data
-        $sql = "SELECT user, v1, v2 FROM eigenvector WHERE article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
+        $sql = "SELECT user, v1, v2 FROM eigenvector WHERE " . $whereclause;
         $rs = mysql_query($sql, $dbconn);
         while ($crow = mysql_fetch_row($rs)) {
             $user = array();
@@ -81,14 +85,14 @@ function getData($wiki) {
             $user['in'] = 0;
             $user['revised'] = array();
         
-            $sql = "SELECT weight, touser FROM edge WHERE fromuser = '$crow[0]' AND article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
+            $sql = "SELECT SUM(weight), touser FROM edge WHERE fromuser = '$crow[0]' AND " . $whereclause . " GROUP BY touser";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['out'] += $crow_1[0];
                 $user['revised'][$crow_1[1]] = (float) $crow_1[0];
             }
 
-            $sql = "SELECT weight FROM edge WHERE touser = '$crow[0]' AND article = $page_id AND wiki = '$wiki' AND sid = '$sid'";
+            $sql = "SELECT SUM(weight) FROM edge WHERE touser = '$crow[0]' AND " . $whereclause;
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['in'] += $crow_1[0];
