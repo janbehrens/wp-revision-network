@@ -22,8 +22,7 @@ CREATE TABLE `eigenvalue` (
   `lambda2` double NOT NULL COMMENT 'second smallest eigenvalue',
   `article` integer NOT NULL,
   `wiki` char(50) NOT NULL,
-  `sid` varchar(255) NOT NULL,
-  PRIMARY KEY (`article`, `wiki`)
+  `sid` varchar(255) NOT NULL
 );
 
 CREATE TABLE `eigenvector` (
@@ -32,13 +31,12 @@ CREATE TABLE `eigenvector` (
   `v2` double NOT NULL COMMENT 'vectorelement to the 2nd smallest eigenvalue',
   `article` integer NOT NULL,
   `wiki` char(50) NOT NULL,
-  `sid` varchar(255) NOT NULL,
-  PRIMARY KEY (`user`, `article`, `wiki`)
+  `sid` varchar(255) NOT NULL
 );
 
 CREATE TABLE `evgen` (
   `sid` varchar(255) NOT NULL,
-  `finished` bit(1) NOT NULL,
+  `finished` tinyint NOT NULL,
   PRIMARY KEY (`sid`)
 );
 
@@ -95,8 +93,8 @@ BEGIN
     
     SET SQL_SAFE_UPDATES = 0;
     
-    DELETE FROM edge WHERE DATEDIFF(NOW(), lastupdate) < 7;
-    DELETE FROM weeklyedits WHERE DATEDIFF(NOW(), lastupdate) < 7;
+    DELETE FROM edge WHERE DATEDIFF(NOW(), lastupdate) >= 7;
+    DELETE FROM weeklyedits WHERE DATEDIFF(NOW(), lastupdate) >= 7;
     
     CREATE TEMPORARY TABLE IF NOT EXISTS sigma (user varchar(255), edits int, sum int, sumsqr int, PRIMARY KEY (`user`));
     

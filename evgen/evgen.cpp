@@ -73,7 +73,7 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 			<< _sid << "'); ";
 	}
 	sql << "UPDATE evgen SET finished = 1 WHERE sid = '" << _sid << "'; "
-		<< "SET SQL_SAFE_UPDATES = 1;";
+		<< "SET SQL_SAFE_UPDATES = 1; ";
 	string query = sql.str();
 
 	int val = mysql_query(connection, query.c_str());
@@ -127,8 +127,9 @@ int main(int argc, char* argv[]) {
 	MYSQL_RES *result;
 	AdjacencyMatrix *mat = new AdjacencyMatrix();
 
+	//connect to database
 	mysql_init(&mysql);
-	//mysql_options(&mysql, MYSQL_READ_DEFAULT_GROUP, "client");
+	mysql_options(&mysql, MYSQL_READ_DEFAULT_GROUP, "client");
 	connection = mysql_real_connect(&mysql, _dbhost, _dbuser, _dbpass, _dbname, 0, NULL, CLIENT_MULTI_STATEMENTS);
 	if (!connection) {
 		cout << mysql_error(&mysql) << endl;
@@ -136,6 +137,11 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
+	stringstream sql;
+	string ssql;
+	int queryResult;
+
+	//select db
 	int select = mysql_select_db(&mysql, _dbname);
 	if (select != 0) {
 		cout << mysql_error(&mysql) << endl;
@@ -143,16 +149,15 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	//define query
-	stringstream sql;
+	//get revision edges
 	sql << "SELECT fromuser, touser, SUM(weight) FROM edge "
 		<< "WHERE article = " << _article << " AND wiki = '" << _wiki << "' ";
 	if (strcmp(_ed, "0") != 0) {
 		sql << "AND timestamp > " << _sd << " AND timestamp < " << _ed;
 	}
 	sql << " GROUP BY fromuser, touser;";
-	string ssql = sql.str();
-	int queryResult = mysql_query(connection, ssql.c_str());
+	ssql = sql.str();
+	queryResult = mysql_query(connection, ssql.c_str());
 
 	//generate data
 	if (queryResult == 0) {
@@ -196,25 +201,6 @@ int main(int argc, char* argv[]) {
 	if (es.eigenvalues().count() > 0) {
 		storeEigenvectorsX(connection, es, mat);
 		cout << mat->GetCount() << endl;
-
-		// make sure that the script does not finish before all data is inserted
-		sql.str("");
-		sql << "SELECT finished FROM evgen WHERE sid = '" << _sid << "'";
-		string ssql = sql.str();
-		int queryResult = mysql_query(connection, ssql.c_str());
-
-		if (queryResult == 0) {
-			MYSQL_ROW row;
-
-			while (1) {
-				result = mysql_store_result(connection);
-
-				while ((row = mysql_fetch_row(result)) != NULL) {
-					if (row[1] != 0) break;
-				}
-				mysql_free_result(result);
-			}
-		}
 	} else {
 		if (debugOutput) {
 			cout << "No valid Eigenvectors found!\nAborting ... " << endl;
@@ -223,9 +209,9 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	if (debugOutput) {
+	/*if (debugOutput) {
 		mat->DebugTable("test.html");
-	}
+	}*/
 
 	debugfile.close();
 

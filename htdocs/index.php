@@ -1,26 +1,5 @@
 ﻿<?php
     //******************************************************************************************
-    //* Draws the article dropdown (deprecated)
-    //******************************************************************************************
-    function drawArticleDD() {
-        require("config.php");
-
-        echo "<select name='article' id='article'>";
-        echo "<option value=''>Please select ...</option>";
-
-        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
-        mysql_select_db($dbname, $dbconn);
-        mysql_query("set names 'utf8';", $dbconn);
-
-        $sql = "SELECT DISTINCT article FROM entry ORDER BY article";
-        $rs = mysql_query($sql, $dbconn);
-        while ($crow = mysql_fetch_row($rs)) {
-            echo "<option value=\"$crow[0]\">$crow[0]</option>\n";
-        }
-        echo "</select>";
-    }
-    
-    //******************************************************************************************
     //* Draws the WP dropdown
     //******************************************************************************************
     function drawWpDD() {
@@ -28,18 +7,20 @@
 
         echo "<select name='wiki' id='wiki'>";
         echo "<option value=''>Please select ...</option>";
+        
+        //--- comment out for local testing ---
+	    /*$dbserver = $dbnametoolserver . ".userdb.toolserver.org";
 
-	    //$dbserver = $dbnametoolserver . ".userdb.toolserver.org";
-
-        /*$dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+        $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
         mysql_select_db($dbnametoolserver, $dbconn);
         
-        //$sql = "SELECT w.dbname, l.english_name FROM wiki w JOIN language l ON w.lang = l.lang WHERE family = 'wikipedia' ORDER BY l.english_name";
         $sql = "SELECT dbname FROM wiki WHERE family = 'wikipedia' ORDER BY dbname";
         $rs = mysql_query($sql, $dbconn);
         while ($crow = mysql_fetch_row($rs)) {
             echo "<option value=\"$crow[0]\">" . substr($crow[0], 0, count($crow[0]) - 3) . "</option>\n";
         }*/
+        //-------------------------------------
+        
         echo "</select>";
     }
 ?>

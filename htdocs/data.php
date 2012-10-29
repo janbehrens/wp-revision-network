@@ -4,12 +4,13 @@
 //* executes the ev-gen tool to calculate the eigenvalues/eigenvectors
 //******************************************************************************************
 function execEvGen($page_id, $wiki, $sid, $sd, $ed) {
-    //if (PHP_OS == 'Linux') {
-        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sd $ed $sid debug");
-    //}
-    //else {
-    //    $result = shell_exec("evgen-bin\\evgen.exe $page_id $wiki $sd $ed $sid");
-    //}
+    if (PHP_OS == 'Linux' || PHP_OS == 'SunOS') {
+        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sd $ed $sid");
+    }
+    else {
+        $result = shell_exec("evgen-bin\\evgen.exe $page_id $wiki $sd $ed $sid");
+    }
+    return $result != "0";
 }
 
 //******************************************************************************************
@@ -31,27 +32,49 @@ function getData($wiki) {
     $dmax = $_POST['dmax'];
     
     if ($ed != null) {
-        //20060331220000
+        //format: 20060331220000
         $sdf = $sd->format('YmdHis');
         $edf = $ed->format('YmdHis');
     }
     else {
         $sdf = $edf = 0;
         
-        //check if recent revision edge data is available
+        //check if recent revision edge data is available - if not, calculate revision edges
         $sql = "SELECT article FROM edge WHERE article = $page_id AND wiki = '$wiki' AND dmax = $dmax";
-        $rs = mysql_query($sql, $dbconn);
-        $crow = mysql_fetch_row($rs);
-        
-        //if not, calculate revision edges
-        if (!$crow) {
-            mysql_query("call getEdges('$wiki', $page_id, $dmax)", $dbconn);
+        if ($rs = mysql_query($sql, $dbconn)) {
+            if (!($crow = mysql_fetch_row($rs))) {
+                mysql_query("call getEdges('$wiki', $page_id, $dmax)", $dbconn);
+            }
+        }
+        else {      //error
+            echo "{ \"error\" : \"page not found\" }";
+            return false;
         }
     }
     
     //calculate eigenvectors
-    execEvGen($page_id, $wiki, $sid, $sdf, $edf);
+    $result = execEvGen($page_id, $wiki, $sid, $sdf, $edf);
 
+    //this part checks if the evgen tool has finished inserting the data
+    if ($result) {
+        while (true) {
+            $sql = "SELECT finished FROM evgen WHERE sid = '$sid'";
+            $rs = mysql_query($sql, $dbconn);
+            $crow = mysql_fetch_row($rs);
+
+            if ($crow[0] == 0) {
+                usleep(250000);
+            }
+            else {
+                break;
+            }
+        }
+    }
+    else {  //error
+        echo "{ \"error\" : \"eigenvector calculation failed\" }";
+        return false;
+    }
+    
     $positions = array();
     $s = 0;
     $rsdmin = PHP_INT_MAX;
@@ -163,8 +186,11 @@ function getTimelineData($wiki) {
     $page_id = $_SESSION['page_id'];
     
     $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
+    
+    //--- comment out for local testing ---
     //mysql_select_db($dbname, $dbconn);
     //mysql_query("set names 'utf8';", $dbconn);
+    //-------------------------------------
     
     $sql = "SELECT year(rev_timestamp) as y, month(rev_timestamp) as m, count(*) as amount FROM $wiki.revision WHERE rev_page = $page_id GROUP BY year(rev_timestamp), month(rev_timestamp) ORDER BY rev_timestamp";
     $rs = mysql_query($sql, $dbconn);
@@ -251,9 +277,6 @@ function getDateBy($name) {
         return null;
     } else {
         return new DateTime(date('d-m-Y', strtotime($_POST[$name])));
-        /*$time = strtotime($_POST[$name]);
-        error_log($time);
-        return $time;*/
     }
 }
 
@@ -264,6 +287,8 @@ function get_page_id($wiki, $article) {
     require("config.php");
     
     //read revision data from the wikipedia database
+    
+    //--- comment out for local testing ---
     //$dbserver = str_replace('_', '-', $wiki) . ".rrdb.toolserver.org";
     
     $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
@@ -282,9 +307,8 @@ function get_page_id($wiki, $article) {
 
     $_SESSION['page_id'] = $crow[0];
     
+    //--- comment out for local testing ---
     //mysql_close($dbconn);
-    
-    //error_log("finished reading wp");
 }
 
 //******************************************************************************************
@@ -292,11 +316,10 @@ function get_page_id($wiki, $article) {
 //******************************************************************************************
 function main() {
     session_start();
-
-    //error_log("starting session " . session_id());
-
+    
     if (isset($_POST['load'])) {
         $article = $_POST['article'];
+        //--- hardcode $wiki for local testing ---
         //$wiki = $_POST['wiki'];
         $wiki = 'wikipedia';
         
@@ -305,6 +328,7 @@ function main() {
         getData($wiki);
     }
     else if (isset($_POST['timeline'])) {
+        //--- hardcode $wiki for local testing ---
         //$wiki = $_POST['wiki'];
         $wiki = 'wikipedia';
         

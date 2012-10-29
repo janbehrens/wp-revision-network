@@ -8,7 +8,7 @@ Vis = {
     //******************************************************************************************
     Load : function(daterange) {
         if ($F('article') == "") {
-            alert("Please choose an article first!");
+            alert("Please choose a wiki and enter a page title!");
             return;
         }
         
@@ -30,6 +30,14 @@ Vis = {
 			},
 			onSuccess       : function(transport) {
 				var res = transport.responseText.evalJSON();
+				
+				if (res.error) {
+				    alert("Error: " + res.error);
+				    Vis.ToggleLoading(true);
+				    $('welcome-screen').show();
+                    return;
+				}
+				
                 if (res.positions) {
                     if (res.positions.length == 0) {
                         noData = true;
