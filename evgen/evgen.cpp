@@ -15,6 +15,7 @@ const char *_wiki = "";
 const char *_sid = "";
 const char *_sd = "";
 const char *_ed = "";
+const char *_dmax = "";
 const char *_dbhost = "localhost";
 const char *_dbuser = "root";
 const char *_dbpass = "pw";
@@ -94,19 +95,20 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 //******************************************************************************************
 //int _tmain(int argc, wchar_t** argv) { //windows specific entry point
 int main(int argc, char* argv[]) {
-	if (argc < 6) {
+	if (argc < 7) {
 		cout << "Error: Please provide article id, wiki name, start date, end date and session id as arguments!" << endl << endl;
 		return EXIT_FAILURE;
 	}
 	bool debugOutput = false;
-	if (argc > 6) {
+	if (argc > 7) {
 		debugOutput = true;
 	}
 	_article = argv[1];
 	_wiki = argv[2];
 	_sd = argv[3];
 	_ed = argv[4];
-	_sid = argv[5];
+	_dmax = argv[5];
+	_sid = argv[6];
 
 	debugfile.open("evgendebug");
 
@@ -116,11 +118,13 @@ int main(int argc, char* argv[]) {
 		cout << "SID: " << _sid << endl;
 		cout << "start date: " << _sd << endl;
 		cout << "end date: " << _ed << endl;
+		cout << "dmax: " << _dmax << endl;
 		debugfile << "Article: " << _article << endl;
 		debugfile << "Wiki: " << _wiki << endl;
 		debugfile << "SID: " << _sid << endl;
 		debugfile << "start date: " << _sd << endl;
 		debugfile << "end date: " << _ed << endl;
+		debugfile << "dmax: " << _dmax << endl;
 	}
 
 	MYSQL *connection, mysql;
@@ -150,10 +154,11 @@ int main(int argc, char* argv[]) {
 	}
 
 	//get revision edges
+	sql.str("");
 	sql << "SELECT fromuser, touser, SUM(weight) FROM edge "
-		<< "WHERE article = " << _article << " AND wiki = '" << _wiki << "' ";
+		<< "WHERE article = " << _article << " AND wiki = '" << _wiki << "' AND dmax = " << _dmax;
 	if (strcmp(_ed, "0") != 0) {
-		sql << "AND timestamp > " << _sd << " AND timestamp < " << _ed;
+		sql << " AND timestamp > " << _sd << " AND timestamp < " << _ed;
 	}
 	sql << " GROUP BY fromuser, touser;";
 	ssql = sql.str();

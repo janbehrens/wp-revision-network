@@ -3,12 +3,12 @@
 //******************************************************************************************
 //* executes the ev-gen tool to calculate the eigenvalues/eigenvectors
 //******************************************************************************************
-function execEvGen($page_id, $wiki, $sid, $sd, $ed) {
+function execEvGen($page_id, $wiki, $sid, $sd, $ed, $dmax) {
     if (PHP_OS == 'Linux' || PHP_OS == 'SunOS') {
-        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sd $ed $sid");
+        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sd $ed $dmax $sid");
     }
     else {
-        $result = shell_exec("evgen-bin\\evgen.exe $page_id $wiki $sd $ed $sid");
+        $result = shell_exec("evgen-bin\\evgen.exe $page_id $wiki $sd $ed $dmax $sid");
     }
     return $result != "0";
 }
@@ -23,6 +23,10 @@ function getData($wiki) {
     
     $sid = session_id();
 
+    //--- comment out for local testing ---
+    //$dbserver = str_replace('_', '-', $wiki) . ".userdb.toolserver.org";
+    //-------------------------------------
+    
     $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
     mysql_select_db($dbname, $dbconn);
     mysql_query("set names 'utf8';", $dbconn);
@@ -53,7 +57,7 @@ function getData($wiki) {
     }
     
     //calculate eigenvectors
-    $result = execEvGen($page_id, $wiki, $sid, $sdf, $edf);
+    $result = execEvGen($page_id, $wiki, $sid, $sdf, $edf, $dmax);
 
     //this part checks if the evgen tool has finished inserting the data
     if ($result) {
@@ -80,7 +84,7 @@ function getData($wiki) {
     $rsdmin = PHP_INT_MAX;
     $rsdmax = 0;
     
-    $whereclause_edge = $whereclause = "article = $page_id AND wiki = '$wiki'";
+    $whereclause_edge = $whereclause = "article = $page_id AND wiki = '$wiki' AND dmax = $dmax";
     
     if ($ed != null) {
         $whereclause_edge .= " AND timestamp > $sdf AND timestamp < $edf";
@@ -184,6 +188,10 @@ function getTimelineData($wiki) {
     require("config.php");
     
     $page_id = $_SESSION['page_id'];
+    
+    //--- comment out for local testing ---
+    //$dbserver = str_replace('_', '-', $wiki) . ".rrdb.toolserver.org";
+    //-------------------------------------
     
     $dbconn = mysql_connect($dbserver, $dbuser, $dbpassword);
     
