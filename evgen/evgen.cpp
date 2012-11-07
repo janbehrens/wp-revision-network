@@ -52,11 +52,12 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 		<< "INSERT INTO evgen VALUES ('" << _sid << "', 0); "
 		<< "DELETE FROM eigenvector WHERE sid = '" << _sid << "'; "
 		<< "DELETE FROM eigenvalue WHERE sid = '" << _sid << "'; "
-		<< "INSERT INTO eigenvalue (lambda1, lambda2, article, wiki, sid) VALUES ("
+		<< "INSERT INTO eigenvalue (lambda1, lambda2, article, wiki, dmax, sid) VALUES ("
 		<< es.eigenvalues()[0] << ", "
 		<< es.eigenvalues()[1] << ", "
 		<< _article << ", '"
-		<< _wiki << "', '"
+		<< _wiki << "', "
+		<< _dmax << ", '"
 		<< _sid << "'); ";
 
 	Eigen::VectorXd v1 = es.eigenvectors().col(0);
@@ -70,7 +71,8 @@ int storeEigenvectorsX(MYSQL *connection, Eigen::SelfAdjointEigenSolver<MatrixXd
 			<< v1.row(it->second) << ", "
 			<< v2.row(it->second) << ", "
 			<< _article << ", '"
-			<< _wiki << "', '"
+			<< _wiki << "', "
+			<< _dmax << ", '"
 			<< _sid << "'); ";
 	}
 	sql << "UPDATE evgen SET finished = 1 WHERE sid = '" << _sid << "'; "

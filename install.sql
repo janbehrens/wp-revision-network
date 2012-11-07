@@ -14,6 +14,7 @@ CREATE TABLE `weeklyedits` (
   `rsd` float NOT NULL COMMENT 'relative standard deviation of weekly edits',
   `article` integer NOT NULL,
   `wiki` char(50) NOT NULL,
+  `dmax` int NOT NULL,
   `lastupdate` timestamp NOT NULL
 );
 
@@ -22,6 +23,7 @@ CREATE TABLE `eigenvalue` (
   `lambda2` double NOT NULL COMMENT 'second smallest eigenvalue',
   `article` integer NOT NULL,
   `wiki` char(50) NOT NULL,
+  `dmax` int NOT NULL,
   `sid` varchar(255) NOT NULL
 );
 
@@ -31,6 +33,7 @@ CREATE TABLE `eigenvector` (
   `v2` double NOT NULL COMMENT 'vectorelement to the 2nd smallest eigenvalue',
   `article` integer NOT NULL,
   `wiki` char(50) NOT NULL,
+  `dmax` int NOT NULL,
   `sid` varchar(255) NOT NULL
 );
 
@@ -69,6 +72,7 @@ CREATE PROCEDURE `proc2`(wiki char(50), art integer, dmax int)
 BEGIN
     DECLARE currentUser varchar(255);
     DECLARE lastUser varchar(255);
+    DECLARE now datetime;
     DECLARE currentTimestamp datetime;
     DECLARE lastTimestamp datetime;
     DECLARE lastWeekTimestamp datetime;
@@ -90,11 +94,12 @@ BEGIN
     SET w = 0;
     SET weekCount = 0;
     SET lastWeekTimestamp = 0;
+    SET now = NOW();
     
     SET SQL_SAFE_UPDATES = 0;
     
-    DELETE FROM edge WHERE DATEDIFF(NOW(), lastupdate) >= 7;
-    DELETE FROM weeklyedits WHERE DATEDIFF(NOW(), lastupdate) >= 7;
+    DELETE FROM edge WHERE DATEDIFF(now, lastupdate) >= 7;
+    DELETE FROM weeklyedits WHERE DATEDIFF(now, lastupdate) >= 7;
     
     CREATE TEMPORARY TABLE IF NOT EXISTS sigma (user varchar(255), edits int, sum int, sumsqr int, PRIMARY KEY (`user`));
     
@@ -123,7 +128,7 @@ BEGIN
             END IF;
             
             IF wdt <> 0 THEN
-                INSERT INTO edge VALUES (currentUser, lastUser, wdt, currentTimestamp, art, wiki, dmax, NOW());
+                INSERT INTO edge VALUES (currentUser, lastUser, wdt, currentTimestamp, art, wiki, dmax, now);
             END IF;
         END IF;
         
@@ -162,7 +167,7 @@ BEGIN
             SET weeklyVariance = (currentSumSqr - currentSum * weeklyMean) / weekCount;
             
             IF weeklyMean > 0 THEN
-                INSERT INTO weeklyedits VALUES (currentUser, SQRT(weeklyVariance)/weeklyMean, art, wiki, NOW());
+                INSERT INTO weeklyedits VALUES (currentUser, SQRT(weeklyVariance)/weeklyMean, art, wiki, dmax, now);
             END IF;
         END IF;
     END LOOP;
