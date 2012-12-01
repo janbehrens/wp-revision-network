@@ -1,20 +1,29 @@
-1) Running parse.pl
+Perform the following steps in order to install the application:
 
-- Make sure you have the DBI, Time::Local, Text::CSV and XML::Parser::PerlSAX Perl modules installed.
+1) Database setup
 
-- Create a MySQL database and load the setup from install.sql
+You'll need two databases: One that contains original Wikipedia revision data (replication database), and one for application data.
 
-- Get a Wikipedia stub file from http://dumps.wikimedia.org/
+Replication database:
+- Get a Wikipedia dump file from http://dumps.wikimedia.org/ - you don't need the full history dumps, history metadata stubs are sufficient (something like "xyz-20120101-stub-meta-history.xml").
+- Import it into your replication database (see http://www.mediawiki.org/wiki/Manual:Importing_XML_dumps for help)
 
-- Run 'perl parse.pl CONNECTION ARTICLES DTMAX DUMPFILE' with
-    CONNECTION : database credentials in the form "dbname,dbhost,dbuser,dbpass"
-    ARTICLES : page titles whose history you want to analyse as comma-separated list, e.g. "Alan Smithee, Ang Lee, Aussagenlogik" (use those double quotes!)
-    DTMAX : the maximum time difference between edits (as integer)
-    DUMPFILE : path to the Wikipedia dump file
+Application database:
+- Create another MySQL database and import install.sql
+
 
 2) Eigenvalue generator
 
-The 'evgen' tool calculated eigenvalues and associated eigenvectors and is automatically called by the php script.
+The 'evgen' tool calculates eigenvalues and associated eigenvectors and is automatically called by the php script. Before you compile it, you must enter your database connection details in "evgen/evgen.cpp". The "dbname" variable refers to the application database.
 
-- Run 'evgen "Articlename" "SessionID" ' (for a debug html output add a third parameter, e.g. 'evgen Articlename xyz debug')
+Compiling for Linux/Solaris: Navigate to the "Debug" folder an run "make all". This should create the binary and save it in "htdocs/evgen".
+
+Make sure that it can be executed by your web server user.
+
+
+3) Configuration
+
+Open the file "htdocs/config.php" and insert your database connection details. While $dbname refers to the application database, $dbnamelocalwiki refers to the replication database.
+
+Now the application should be operable. Note that you need a WebGL-enabled browser for using it.
 

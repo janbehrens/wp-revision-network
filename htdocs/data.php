@@ -329,18 +329,18 @@ function main() {
     
     if (isset($_POST['load'])) {
         $article = $_POST['article'];
-        //--- hardcode $wiki for local testing ---
+        //--- use $dbnamelocalwiki for local testing ---
         //$wiki = $_POST['wiki'];
-        $wiki = 'wikipedia';
+        $wiki = $dbnamelocalwiki;
         
         get_page_id($wiki, $article);
         
         getData($wiki);
     }
     else if (isset($_POST['timeline'])) {
-        //--- hardcode $wiki for local testing ---
+        //--- use $dbnamelocalwiki for local testing ---
         //$wiki = $_POST['wiki'];
-        $wiki = 'wikipedia';
+        $wiki = $dbnamelocalwiki;
         
         getTimelineData($wiki);
     }
