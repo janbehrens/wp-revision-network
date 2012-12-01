@@ -5,7 +5,7 @@
 //******************************************************************************************
 function execEvGen($page_id, $wiki, $sid, $sd, $ed, $dmax) {
     if (PHP_OS == 'Linux' || PHP_OS == 'SunOS') {
-        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sd $ed $dmax $sid");
+        $result = shell_exec("evgen-bin/evgen $page_id $wiki $sd $ed $dmax $sid debug");
     }
     else {
         $result = shell_exec("evgen-bin\\evgen.exe $page_id $wiki $sd $ed $dmax $sid");
@@ -60,7 +60,7 @@ function getData($wiki) {
     $result = execEvGen($page_id, $wiki, $sid, $sdf, $edf, $dmax);
 
     //this part checks if the evgen tool has finished inserting the data
-    if ($result) {
+    /*if ($result) {
         while (true) {
             $sql = "SELECT finished FROM evgen WHERE sid = '$sid'";
             $rs = mysql_query($sql, $dbconn);
@@ -77,7 +77,7 @@ function getData($wiki) {
     else {  //error
         echo "{ \"error\" : \"eigenvector calculation failed\" }";
         return false;
-    }
+    }*/
     
     $positions = array();
     $s = 0;
@@ -91,7 +91,7 @@ function getData($wiki) {
     }
 
     //check if edges are available
-    $sql = "SELECT count(*) FROM edge WHERE $whereclause_edge AND dmax = $dmax";
+    $sql = "SELECT count(*) FROM edge WHERE $whereclause_edge";
     $rs = mysql_query($sql, $dbconn);
     $crow = mysql_fetch_row($rs);
     if ($crow[0] > 0) {
@@ -115,14 +115,14 @@ function getData($wiki) {
             $user['in'] = 0;
             $user['revised'] = array();
         
-            $sql = "SELECT SUM(weight), touser FROM edge WHERE fromuser = '$crow[0]' AND $whereclause AND dmax = $dmax GROUP BY touser";
+            $sql = "SELECT SUM(weight), touser FROM edge WHERE fromuser = '$crow[0]' AND $whereclause GROUP BY touser";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['out'] += $crow_1[0];
                 $user['revised'][$crow_1[1]] = (float) $crow_1[0];
             }
 
-            $sql = "SELECT SUM(weight) FROM edge WHERE touser = '$crow[0]' AND $whereclause AND dmax = $dmax";
+            $sql = "SELECT SUM(weight) FROM edge WHERE touser = '$crow[0]' AND $whereclause";
             $rs_1 = mysql_query($sql, $dbconn);
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['in'] += $crow_1[0];
@@ -135,8 +135,8 @@ function getData($wiki) {
             while ($crow_1 = mysql_fetch_row($rs_1)) {
                 $user['rsd'] = $crow_1[0];
             }
-                $rsdmin = $user['rsd'] < $rsdmin ? $user['rsd'] : $rsdmin;
-                $rsdmax = $user['rsd'] > $rsdmax ? $user['rsd'] : $rsdmax;
+            $rsdmin = $user['rsd'] < $rsdmin ? $user['rsd'] : $rsdmin;
+            $rsdmax = $user['rsd'] > $rsdmax ? $user['rsd'] : $rsdmax;
 
             if ($user['p1'] != 0 || $user['p2'] != 0) {
                 $positions[] = $user;
@@ -224,7 +224,7 @@ function getTimelineData($wiki) {
         $eYear = $y;
         $eMonth = $m;
     }
-
+    
     $startDate = new DateTime("20-$sMonth-$sYear");
     $endDate = new DateTime("20-$eMonth-$eYear");
     
@@ -323,6 +323,8 @@ function get_page_id($wiki, $article) {
 // main function
 //******************************************************************************************
 function main() {
+    date_default_timezone_set("UTC");
+    
     session_start();
     
     if (isset($_POST['load'])) {
